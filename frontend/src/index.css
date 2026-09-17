@@ -1,0 +1,272 @@
+:root {
+  --primary: #1f3a5f;
+  --primary-dark: #142942;
+  --accent: #c08a2e;
+  --surface: #ffffff;
+  --background: #f4f6f9;
+  --border: #dde3ea;
+  --text: #1c2530;
+  --text-muted: #5b6b7c;
+  --danger: #b3261e;
+  --font-body: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--background);
+}
+
+button {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--border);
+}
+
+button.small {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+input,
+select {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 100%;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.form-error {
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.session-notice {
+  background: #eef4fb;
+  color: var(--primary-dark);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+/* Auth pages */
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.auth-card {
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(20, 41, 66, 0.08);
+  padding: 32px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-card h1 {
+  margin: 0 0 4px;
+  color: var(--primary-dark);
+}
+
+.auth-subtitle {
+  color: var(--text-muted);
+  margin: 0 0 20px;
+  font-size: 14px;
+}
+
+.auth-footer {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 12px;
+}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+}
+
+.field-row label {
+  flex: 1;
+}
+
+/* App shell */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: #fff;
+  padding: 20px 0;
+}
+
+.sidebar-logo {
+  font-weight: 700;
+  font-size: 18px;
+  padding: 0 20px 4px;
+  letter-spacing: 0.04em;
+}
+
+.sidebar-org {
+  padding: 0 20px 20px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 12px;
+}
+
+.sidebar-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-links a {
+  display: block;
+  padding: 10px 20px;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.sidebar-links a.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-weight: 600;
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+  padding: 32px 40px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-role {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.page-header h1 {
+  margin: 0 0 4px;
+  color: var(--primary-dark);
+}
+
+.page-header p {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+}
+
+.dashboard-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.dashboard-section h2 {
+  margin-top: 0;
+}
+
+.simple-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.simple-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.add-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+
+.add-form label {
+  min-width: 180px;
+  margin-bottom: 0;
+}
+
+.page-status {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+
+  .main-content {
+    padding: 20px 16px;
+  }
+
+  .field-row {
+    flex-direction: column;
+  }
+}

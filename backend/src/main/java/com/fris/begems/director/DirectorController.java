@@ -2,6 +2,7 @@ package com.fris.begems.director;
 
 import com.fris.begems.director.dto.CreateDirectorRequest;
 import com.fris.begems.director.dto.DirectorSummary;
+import com.fris.begems.director.dto.InviteDirectorResponse;
 import com.fris.begems.security.AppUserPrincipal;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -11,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,5 +40,11 @@ public class DirectorController {
     public ResponseEntity<DirectorSummary> create(@AuthenticationPrincipal AppUserPrincipal principal,
             @Valid @RequestBody CreateDirectorRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(directorService.create(principal, request));
+    }
+
+    @PostMapping("/{id}/invite")
+    @PreAuthorize("hasAnyRole('COMPANY_SECRETARY', 'EVALUATOR')")
+    public InviteDirectorResponse invite(@AuthenticationPrincipal AppUserPrincipal principal, @PathVariable UUID id) {
+        return directorService.invite(principal, id);
     }
 }

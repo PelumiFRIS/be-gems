@@ -15,6 +15,12 @@ export function Sidebar() {
         <li>
           <NavLink to="/board-setup">Board Setup</NavLink>
         </li>
+        <li>
+          <NavLink to="/evaluations">Evaluations</NavLink>
+        </li>
+        <li>
+          <NavLink to="/my-evaluations">My Evaluations</NavLink>
+        </li>
       </ul>
     </nav>
   );

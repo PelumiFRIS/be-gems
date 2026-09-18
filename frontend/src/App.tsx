@@ -3,7 +3,12 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { BoardSetupPage } from "./pages/BoardSetupPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { EvaluationResultsPage } from "./pages/EvaluationResultsPage";
+import { EvaluationSetupPage } from "./pages/EvaluationSetupPage";
+import { EvaluationsListPage } from "./pages/EvaluationsListPage";
 import { LoginPage } from "./pages/LoginPage";
+import { MyEvaluationsPage } from "./pages/MyEvaluationsPage";
+import { RespondentQuestionnairePage } from "./pages/RespondentQuestionnairePage";
 import { SignupPage } from "./pages/SignupPage";
 
 function App() {
@@ -25,6 +30,46 @@ function App() {
           element={
             <ProtectedRoute>
               <BoardSetupPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/evaluations"
+          element={
+            <ProtectedRoute>
+              <EvaluationsListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/evaluations/:id"
+          element={
+            <ProtectedRoute>
+              <EvaluationSetupPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/evaluations/:id/results"
+          element={
+            <ProtectedRoute>
+              <EvaluationResultsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-evaluations"
+          element={
+            <ProtectedRoute>
+              <MyEvaluationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-evaluations/:id"
+          element={
+            <ProtectedRoute>
+              <RespondentQuestionnairePage />
             </ProtectedRoute>
           }
         />

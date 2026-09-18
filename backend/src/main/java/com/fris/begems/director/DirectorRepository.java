@@ -10,4 +10,6 @@ public interface DirectorRepository extends JpaRepository<Director, UUID> {
     List<Director> findByBoardId(UUID boardId);
 
     Optional<Director> findByIdAndOrganizationId(UUID id, UUID organizationId);
+
+    Optional<Director> findByUserId(UUID userId);
 }

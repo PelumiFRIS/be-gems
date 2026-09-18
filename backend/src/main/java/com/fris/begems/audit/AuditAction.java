@@ -2,10 +2,15 @@ package com.fris.begems.audit;
 
 /**
  * Grows one value at a time as each module is built — see the plan's phased
- * backlog. Only the actions the scaffold pass actually performs are listed here.
+ * backlog. Only the actions built so far are listed here.
  */
 public enum AuditAction {
     ORGANIZATION_SIGNUP,
     LOGIN,
-    USER_CREATED
+    USER_CREATED,
+    DIRECTOR_INVITED,
+    EVALUATION_CREATED,
+    EVALUATION_LAUNCHED,
+    EVALUATION_CLOSED,
+    EVALUATION_SCORED
 }

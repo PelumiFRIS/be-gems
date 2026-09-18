@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { addCommitteeMember, createCommittee, listCommittees } from "../api/committees";
 import { createBoard, listBoards } from "../api/boards";
 import { extractErrorMessage } from "../api/client";
-import { createDirector, listDirectors } from "../api/directors";
+import { createDirector, inviteDirector, listDirectors } from "../api/directors";
 import type { BoardSummary, CommitteeSummary, DirectorClassification, DirectorSummary } from "../api/types";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
@@ -29,6 +29,10 @@ export function BoardSetupPage() {
     "NON_EXECUTIVE_DIRECTOR",
   );
   const [committeeName, setCommitteeName] = useState("");
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [revealedInvite, setRevealedInvite] = useState<{ name: string; email: string; password: string } | null>(
+    null,
+  );
 
   useEffect(() => {
     listBoards()
@@ -93,6 +97,20 @@ export function BoardSetupPage() {
     }
   }
 
+  async function handleInvite(director: DirectorSummary) {
+    setError(null);
+    setInvitingId(director.id);
+    try {
+      const result = await inviteDirector(director.id);
+      setDirectors((prev) => prev.map((d) => (d.id === director.id ? { ...d, hasPortalAccess: true } : d)));
+      setRevealedInvite({ name: director.name, email: result.email, password: result.temporaryPassword });
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setInvitingId(null);
+    }
+  }
+
   async function handleMakeChair(committeeId: string, directorId: string) {
     setError(null);
     try {
@@ -114,6 +132,21 @@ export function BoardSetupPage() {
 
         {error && <p className="form-error">{error}</p>}
         {loading && <p>Loading...</p>}
+
+        {revealedInvite && (
+          <section className="dashboard-section key-reveal">
+            <h2>Portal login for {revealedInvite.name}</h2>
+            <p className="form-error">Copy this now &mdash; it won&apos;t be shown again. Share it with them directly.</p>
+            <p>
+              Email: <code>{revealedInvite.email}</code>
+              <br />
+              Temporary password: <code>{revealedInvite.password}</code>
+            </p>
+            <button type="button" className="secondary small" onClick={() => setRevealedInvite(null)}>
+              Done
+            </button>
+          </section>
+        )}
 
         {!loading && !board && (
           <section className="dashboard-section">
@@ -138,6 +171,19 @@ export function BoardSetupPage() {
                 {directors.map((d) => (
                   <li key={d.id}>
                     {d.name} &mdash; {d.classification.replaceAll("_", " ")}
+                    {d.hasPortalAccess ? (
+                      <span className="table-hint">Portal access granted</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="secondary small"
+                        disabled={!d.email || invitingId === d.id}
+                        onClick={() => handleInvite(d)}
+                        title={d.email ? undefined : "Add an email first"}
+                      >
+                        {invitingId === d.id ? "Inviting..." : "Invite to portal"}
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -48,6 +48,9 @@ public class Director {
     @Column(name = "term_expiration_date")
     private LocalDate termExpirationDate;
 
+    @Column(name = "user_id")
+    private UUID userId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

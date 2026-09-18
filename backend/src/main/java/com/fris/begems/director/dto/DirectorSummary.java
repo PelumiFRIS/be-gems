@@ -12,7 +12,8 @@ public record DirectorSummary(
         String email,
         DirectorClassification classification,
         LocalDate appointmentDate,
-        LocalDate termExpirationDate) {
+        LocalDate termExpirationDate,
+        boolean hasPortalAccess) {
 
     public static DirectorSummary from(Director director) {
         return new DirectorSummary(
@@ -22,6 +23,7 @@ public record DirectorSummary(
                 director.getEmail(),
                 director.getClassification(),
                 director.getAppointmentDate(),
-                director.getTermExpirationDate());
+                director.getTermExpirationDate(),
+                director.getUserId() != null);
     }
 }

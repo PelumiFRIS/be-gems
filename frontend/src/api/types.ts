@@ -58,6 +58,12 @@ export interface DirectorSummary {
   classification: DirectorClassification;
   appointmentDate: string | null;
   termExpirationDate: string | null;
+  hasPortalAccess: boolean;
+}
+
+export interface InviteDirectorResponse {
+  email: string;
+  temporaryPassword: string;
 }
 
 export interface CreateDirectorPayload {
@@ -90,4 +96,106 @@ export interface CreateCommitteePayload {
   name: string;
   meetingFrequency?: string;
   mandate?: string;
+}
+
+export type EvaluationType = "BOARD" | "DIRECTOR_PEER";
+export type EvaluationStatus = "DRAFT" | "LAUNCHED" | "CLOSED" | "SCORED";
+export type RespondentStatus = "INVITED" | "IN_PROGRESS" | "SUBMITTED";
+export type ConfidentialityMode = "IDENTIFIED" | "CONFIDENTIAL" | "ANONYMOUS";
+export type ResponseType = "RATING_1_5" | "YES_NO" | "YES_NO_PARTIALLY" | "NARRATIVE" | "PERCENTAGE" | "NUMERIC";
+
+export interface EvaluationSummary {
+  id: string;
+  boardId: string;
+  evaluationType: EvaluationType;
+  subjectDirectorId: string | null;
+  subjectDirectorName: string | null;
+  year: number;
+  status: EvaluationStatus;
+  startDate: string | null;
+  closeDate: string | null;
+}
+
+export interface CreateEvaluationPayload {
+  boardId: string;
+  evaluationType: EvaluationType;
+  subjectDirectorId?: string;
+  year: number;
+}
+
+export interface RespondentSummary {
+  id: string;
+  directorId: string;
+  directorName: string;
+  confidentialityMode: ConfidentialityMode;
+  status: RespondentStatus;
+  submittedAt: string | null;
+}
+
+export interface EvaluationDetail {
+  evaluation: EvaluationSummary;
+  respondents: RespondentSummary[];
+}
+
+export interface AddRespondentPayload {
+  directorId: string;
+  confidentialityMode: ConfidentialityMode;
+}
+
+export interface QuestionWithAnswer {
+  questionId: string;
+  dimensionId: string;
+  text: string;
+  responseType: ResponseType;
+  mandatory: boolean;
+  ratingValue: number | null;
+  textValue: string | null;
+  numericValue: number | null;
+}
+
+export interface SaveResponsePayload {
+  ratingValue?: number;
+  textValue?: string;
+  numericValue?: number;
+}
+
+export interface MyEvaluationSummary {
+  evaluationId: string;
+  evaluationType: EvaluationType;
+  subjectDirectorName: string | null;
+  year: number;
+  evaluationStatus: EvaluationStatus;
+  myStatus: RespondentStatus;
+  totalQuestions: number;
+  answeredQuestions: number;
+}
+
+export type ScoreScopeType = "DIMENSION" | "BOARD_OVERALL" | "BGEI_CATEGORY" | "BGEI_OVERALL" | "DIRECTOR_OVERALL";
+
+export interface DimensionSummary {
+  id: string;
+  code: string;
+  name: string;
+  defaultWeightPct: number;
+  bgeiCategory: string | null;
+}
+
+export interface FrameworkDetail {
+  id: string;
+  code: string;
+  name: string;
+  version: string;
+  dimensions: DimensionSummary[];
+}
+
+export interface ScoreRowSummary {
+  scopeType: ScoreScopeType;
+  dimensionId: string | null;
+  dimensionName: string | null;
+  bgeiCategory: string | null;
+  rawScore: number | null;
+  weightedScore: number | null;
+  maturityLevel: number | null;
+  maturityLabel: string | null;
+  bgeiBandLabel: string | null;
 }

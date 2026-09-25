@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { extractErrorMessage } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { AuthShowcase } from "../components/AuthShowcase";
 import { PasswordInput } from "../components/PasswordInput";
 import frisLogoNavy from "../assets/fris-logo-navy.png";
 
@@ -32,45 +33,54 @@ export function SignupPage() {
 
   return (
     <div className="auth-page">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <img src={frisLogoNavy} alt="First Registrars" className="auth-logo" />
-        <p className="auth-eyebrow">BE-GEMS</p>
-        <h1>Set up your organisation</h1>
-        <p className="auth-subtitle">Create your organisation and administrator account.</p>
+      <AuthShowcase />
+      <div className="auth-form-panel">
+        <form className="auth-card" onSubmit={handleSubmit}>
+          <img src={frisLogoNavy} alt="First Registrars" className="auth-logo" />
+          <p className="auth-eyebrow">BE-GEMS</p>
+          <h1>Set up your organisation</h1>
+          <p className="auth-subtitle">Create your organisation and administrator account.</p>
 
-        <label>
-          Organisation name
-          <input value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} required />
-        </label>
-        <div className="field-row">
           <label>
-            First name
-            <input value={adminFirstName} onChange={(e) => setAdminFirstName(e.target.value)} required />
+            Organisation name
+            <input value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} required />
+          </label>
+          <div className="field-row">
+            <label>
+              First name
+              <input value={adminFirstName} onChange={(e) => setAdminFirstName(e.target.value)} required />
+            </label>
+            <label>
+              Last name
+              <input value={adminLastName} onChange={(e) => setAdminLastName(e.target.value)} required />
+            </label>
+          </div>
+          <label>
+            Email address
+            <input type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} required />
           </label>
           <label>
-            Last name
-            <input value={adminLastName} onChange={(e) => setAdminLastName(e.target.value)} required />
+            Password
+            <PasswordInput
+              value={adminPassword}
+              onChange={setAdminPassword}
+              minLength={8}
+              required
+              autoComplete="new-password"
+            />
           </label>
-        </div>
-        <label>
-          Email
-          <input type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} required />
-        </label>
-        <label>
-          Password
-          <PasswordInput value={adminPassword} onChange={setAdminPassword} minLength={8} required autoComplete="new-password" />
-        </label>
 
-        {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error">{error}</p>}
 
-        <button type="submit" disabled={submitting}>
-          {submitting ? "Creating..." : "Create organisation"}
-        </button>
+          <button type="submit" disabled={submitting} style={{ width: "100%" }}>
+            {submitting ? "Creating..." : "Create organisation"}
+          </button>
 
-        <p className="auth-footer">
-          Already have an account? <Link to="/login">Sign in</Link>
-        </p>
-      </form>
+          <p className="auth-footer">
+            Already have an account? <Link to="/login">Sign in &rarr;</Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

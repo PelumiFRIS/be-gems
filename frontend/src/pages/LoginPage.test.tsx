@@ -28,7 +28,7 @@ describe("LoginPage", () => {
     mockedUseAuth.mockReturnValue({ login, loading: false } as unknown as ReturnType<typeof useAuth>);
 
     renderLoginPage();
-    await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+    await userEvent.type(screen.getByLabelText("Email address"), "ada@example.com");
     await userEvent.type(screen.getByLabelText("Password"), "password123");
     await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
@@ -41,7 +41,7 @@ describe("LoginPage", () => {
     mockedUseAuth.mockReturnValue({ login, loading: false } as unknown as ReturnType<typeof useAuth>);
 
     renderLoginPage();
-    await userEvent.type(screen.getByLabelText("Email"), "ada@example.com");
+    await userEvent.type(screen.getByLabelText("Email address"), "ada@example.com");
     await userEvent.type(screen.getByLabelText("Password"), "wrong");
     await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
 

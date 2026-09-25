@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { ROLE_LABELS } from "../constants/roles";
 import { useAuth } from "../context/AuthContext";
+import { LogoutIcon } from "./icons";
+import { initials } from "../utils/initials";
 
 export function TopBar() {
   const { user, logout } = useAuth();
@@ -15,14 +17,17 @@ export function TopBar() {
 
   return (
     <div className="topbar">
-      <div>
-        <strong>
-          {user.firstName} {user.lastName}
-        </strong>
-        <span className="topbar-role"> &middot; {ROLE_LABELS[user.role]}</span>
+      <div className="topbar-identity">
+        <span className="avatar">{initials(user.firstName, user.lastName)}</span>
+        <div>
+          <div className="topbar-name">
+            {user.firstName} {user.lastName}
+          </div>
+          <div className="topbar-role">{ROLE_LABELS[user.role]}</div>
+        </div>
       </div>
       <button type="button" className="secondary small" onClick={handleSignOut}>
-        Sign out
+        <LogoutIcon width={15} height={15} /> Sign out
       </button>
     </div>
   );

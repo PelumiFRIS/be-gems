@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { extractErrorMessage } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { PasswordInput } from "../components/PasswordInput";
+import frisLogoNavy from "../assets/fris-logo-navy.png";
 
 export function SignupPage() {
   const { signup } = useAuth();
@@ -31,6 +33,8 @@ export function SignupPage() {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={handleSubmit}>
+        <img src={frisLogoNavy} alt="First Registrars" className="auth-logo" />
+        <p className="auth-eyebrow">BE-GEMS</p>
         <h1>Set up your organisation</h1>
         <p className="auth-subtitle">Create your organisation and administrator account.</p>
 
@@ -54,13 +58,7 @@ export function SignupPage() {
         </label>
         <label>
           Password
-          <input
-            type="password"
-            value={adminPassword}
-            onChange={(e) => setAdminPassword(e.target.value)}
-            minLength={8}
-            required
-          />
+          <PasswordInput value={adminPassword} onChange={setAdminPassword} minLength={8} required autoComplete="new-password" />
         </label>
 
         {error && <p className="form-error">{error}</p>}

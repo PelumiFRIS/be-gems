@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { extractErrorMessage, SESSION_EXPIRED_KEY } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { PasswordInput } from "../components/PasswordInput";
+import frisLogoNavy from "../assets/fris-logo-navy.png";
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -33,7 +35,9 @@ export function LoginPage() {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>BE-GEMS</h1>
+        <img src={frisLogoNavy} alt="First Registrars" className="auth-logo" />
+        <p className="auth-eyebrow">BE-GEMS</p>
+        <h1>Welcome back</h1>
         <p className="auth-subtitle">Board Evaluation &amp; Governance Effectiveness Management System</p>
 
         {sessionExpired && <p className="session-notice">Your session has expired. Please sign in again.</p>}
@@ -44,7 +48,7 @@ export function LoginPage() {
         </label>
         <label>
           Password
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <PasswordInput value={password} onChange={setPassword} required autoComplete="current-password" />
         </label>
 
         {error && <p className="form-error">{error}</p>}

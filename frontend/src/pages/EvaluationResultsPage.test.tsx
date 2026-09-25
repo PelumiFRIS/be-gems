@@ -2,9 +2,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { EvaluationDetail, ScoreRowSummary, UserSummary } from "../api/types";
+import type { EvaluationDetail, FindingSummary, ScoreRowSummary, UserSummary } from "../api/types";
 import { useAuth } from "../context/AuthContext";
 import { getEvaluation } from "../api/evaluations";
+import { createFinding, listFindings } from "../api/findings";
 import { calculateScores, getScores } from "../api/scores";
 import { EvaluationResultsPage } from "./EvaluationResultsPage";
 
@@ -21,10 +22,17 @@ vi.mock("../api/scores", () => ({
   calculateScores: vi.fn(),
 }));
 
+vi.mock("../api/findings", () => ({
+  listFindings: vi.fn(),
+  createFinding: vi.fn(),
+}));
+
 const mockedUseAuth = vi.mocked(useAuth);
 const mockedGetEvaluation = vi.mocked(getEvaluation);
 const mockedGetScores = vi.mocked(getScores);
 const mockedCalculateScores = vi.mocked(calculateScores);
+const mockedListFindings = vi.mocked(listFindings);
+const mockedCreateFinding = vi.mocked(createFinding);
 
 const user: UserSummary = {
   id: "user-1",
@@ -159,6 +167,7 @@ describe("EvaluationResultsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockedUseAuth.mockReturnValue({ user, loading: false } as unknown as ReturnType<typeof useAuth>);
+    mockedListFindings.mockResolvedValue([]);
   });
 
   it("renders dimension scores, board overall and BGEI for a scored board evaluation", async () => {
@@ -210,5 +219,48 @@ describe("EvaluationResultsPage", () => {
     renderPage();
 
     expect(await screen.findByText("Scores are available once the evaluation is closed.")).toBeInTheDocument();
+  });
+
+  it("lists existing findings and lets a Company Secretary record a new one", async () => {
+    const existingFinding: FindingSummary = {
+      id: "finding-1",
+      evaluationId: EVAL_ID,
+      dimensionId: "dim-1",
+      dimensionName: "Board Composition",
+      description: "Board packs circulated late",
+      severity: "HIGH",
+      evidence: null,
+      regulatoryReference: null,
+      rootCause: null,
+      riskImplication: null,
+      createdAt: "2026-01-01T00:00:00Z",
+    };
+    mockedGetEvaluation.mockResolvedValue(boardEvaluationDetail("SCORED"));
+    mockedGetScores.mockResolvedValue(boardScores);
+    mockedListFindings.mockResolvedValue([existingFinding]);
+    mockedCreateFinding.mockResolvedValue({
+      ...existingFinding,
+      id: "finding-2",
+      description: "Risk appetite not reviewed this year",
+      severity: "MEDIUM",
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Board packs circulated late")).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText("Description"), "Risk appetite not reviewed this year");
+    await userEvent.selectOptions(screen.getByLabelText("Severity"), "MEDIUM");
+    await userEvent.click(screen.getByRole("button", { name: "Add finding" }));
+
+    expect(mockedCreateFinding).toHaveBeenCalledWith(EVAL_ID, {
+      description: "Risk appetite not reviewed this year",
+      severity: "MEDIUM",
+      evidence: undefined,
+      regulatoryReference: undefined,
+      rootCause: undefined,
+      riskImplication: undefined,
+    });
+    expect(await screen.findByText("Risk appetite not reviewed this year")).toBeInTheDocument();
   });
 });

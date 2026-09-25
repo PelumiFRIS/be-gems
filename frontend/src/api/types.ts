@@ -199,3 +199,105 @@ export interface ScoreRowSummary {
   maturityLabel: string | null;
   bgeiBandLabel: string | null;
 }
+
+export type FindingSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "OBSERVATION";
+
+export interface FindingSummary {
+  id: string;
+  evaluationId: string;
+  dimensionId: string | null;
+  dimensionName: string | null;
+  description: string;
+  severity: FindingSeverity;
+  evidence: string | null;
+  regulatoryReference: string | null;
+  rootCause: string | null;
+  riskImplication: string | null;
+  createdAt: string;
+}
+
+export interface CreateFindingPayload {
+  dimensionId?: string;
+  description: string;
+  severity: FindingSeverity;
+  evidence?: string;
+  regulatoryReference?: string;
+  rootCause?: string;
+  riskImplication?: string;
+}
+
+export type RecommendationPriority = "HIGH" | "MEDIUM" | "LOW";
+export type RecommendationStatus = "OPEN" | "IN_PROGRESS" | "COMPLETED" | "DEFERRED";
+
+export interface RecommendationSummary {
+  id: string;
+  findingId: string;
+  recommendedAction: string;
+  responsiblePerson: string | null;
+  committeeResponsible: string | null;
+  targetDate: string | null;
+  priority: RecommendationPriority;
+  status: RecommendationStatus;
+  createdAt: string;
+}
+
+export interface CreateRecommendationPayload {
+  recommendedAction: string;
+  responsiblePerson?: string;
+  committeeResponsible?: string;
+  targetDate?: string;
+  priority: RecommendationPriority;
+  status: RecommendationStatus;
+}
+
+export type ActionStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
+
+export interface ActionSummary {
+  id: string;
+  findingId: string;
+  description: string;
+  owner: string | null;
+  approver: string | null;
+  dueDate: string | null;
+  status: ActionStatus;
+  evidence: string | null;
+  closureDate: string | null;
+  overdue: boolean;
+  createdAt: string;
+}
+
+export interface CreateActionPayload {
+  description: string;
+  owner?: string;
+  approver?: string;
+  dueDate?: string;
+  evidence?: string;
+}
+
+export interface UpdateActionPayload {
+  description: string;
+  owner?: string;
+  approver?: string;
+  dueDate?: string;
+  status: ActionStatus;
+  evidence?: string;
+}
+
+export interface ActionRegisterRow {
+  id: string;
+  findingId: string;
+  description: string;
+  owner: string | null;
+  approver: string | null;
+  dueDate: string | null;
+  status: ActionStatus;
+  evidence: string | null;
+  closureDate: string | null;
+  overdue: boolean;
+  createdAt: string;
+  evaluationId: string | null;
+  evaluationYear: number;
+  evaluationType: EvaluationType | null;
+  findingDescription: string | null;
+  findingSeverity: FindingSeverity | null;
+}

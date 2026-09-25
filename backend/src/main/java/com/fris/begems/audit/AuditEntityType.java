@@ -5,5 +5,8 @@ public enum AuditEntityType {
     AUTH,
     USER,
     DIRECTOR,
-    EVALUATION
+    EVALUATION,
+    FINDING,
+    RECOMMENDATION,
+    ACTION
 }

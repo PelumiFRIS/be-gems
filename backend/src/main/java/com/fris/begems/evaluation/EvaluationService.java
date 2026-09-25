@@ -19,7 +19,11 @@ import com.fris.begems.security.AppUserPrincipal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,17 +53,35 @@ public class EvaluationService {
 
     public List<EvaluationSummary> listForBoard(AppUserPrincipal principal, UUID boardId) {
         requireBoardInOrganization(principal, boardId);
-        return evaluationRepository.findByBoardId(boardId).stream()
-                .map(evaluation -> EvaluationSummary.from(evaluation, subjectDirectorName(evaluation)))
+        List<Evaluation> evaluations = evaluationRepository.findByBoardId(boardId);
+        Map<UUID, String> directorNamesById = directorNamesByIdFor(evaluations.stream()
+                .map(Evaluation::getSubjectDirectorId));
+        return evaluations.stream()
+                .map(evaluation -> EvaluationSummary.from(evaluation,
+                        directorNamesById.get(evaluation.getSubjectDirectorId())))
                 .toList();
     }
 
     public EvaluationDetail getDetail(AppUserPrincipal principal, UUID evaluationId) {
         Evaluation evaluation = requireEvaluationInOrganization(principal, evaluationId);
-        List<RespondentSummary> respondents = respondentRepository.findByEvaluationId(evaluationId).stream()
-                .map(r -> RespondentSummary.from(r, directorName(r.getDirectorId())))
+        List<EvaluationRespondent> evaluationRespondents = respondentRepository.findByEvaluationId(evaluationId);
+
+        Map<UUID, String> directorNamesById = directorNamesByIdFor(Stream.concat(
+                evaluationRespondents.stream().map(EvaluationRespondent::getDirectorId),
+                Stream.of(evaluation.getSubjectDirectorId())));
+
+        List<RespondentSummary> respondents = evaluationRespondents.stream()
+                .map(r -> RespondentSummary.from(r, directorNamesById.get(r.getDirectorId())))
                 .toList();
-        return new EvaluationDetail(EvaluationSummary.from(evaluation, subjectDirectorName(evaluation)), respondents);
+        return new EvaluationDetail(
+                EvaluationSummary.from(evaluation, directorNamesById.get(evaluation.getSubjectDirectorId())),
+                respondents);
+    }
+
+    private Map<UUID, String> directorNamesByIdFor(Stream<UUID> directorIds) {
+        List<UUID> ids = directorIds.filter(Objects::nonNull).distinct().toList();
+        return directorRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Director::getId, Director::getName));
     }
 
     @Transactional

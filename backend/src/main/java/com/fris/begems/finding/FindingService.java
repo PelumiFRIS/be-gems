@@ -13,7 +13,10 @@ import com.fris.begems.framework.Dimension;
 import com.fris.begems.framework.DimensionRepository;
 import com.fris.begems.security.AppUserPrincipal;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,8 +38,15 @@ public class FindingService {
 
     public List<FindingSummary> listForEvaluation(AppUserPrincipal principal, UUID evaluationId) {
         requireEvaluation(principal, evaluationId);
-        return findingRepository.findByEvaluationId(evaluationId).stream()
-                .map(finding -> FindingSummary.from(finding, dimensionName(finding.getDimensionId())))
+        List<Finding> findings = findingRepository.findByEvaluationId(evaluationId);
+
+        List<UUID> dimensionIds = findings.stream().map(Finding::getDimensionId).filter(Objects::nonNull)
+                .distinct().toList();
+        Map<UUID, String> dimensionNamesById = dimensionRepository.findAllById(dimensionIds).stream()
+                .collect(Collectors.toMap(Dimension::getId, Dimension::getName));
+
+        return findings.stream()
+                .map(finding -> FindingSummary.from(finding, dimensionNamesById.get(finding.getDimensionId())))
                 .toList();
     }
 

@@ -301,3 +301,13 @@ export interface ActionRegisterRow {
   findingDescription: string | null;
   findingSeverity: FindingSeverity | null;
 }
+
+export interface AttachmentSummary {
+  id: string;
+  findingId: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  uploadedByName: string | null;
+  createdAt: string;
+}

@@ -1,12 +1,14 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import { extractErrorMessage } from "../api/client";
 import { getFinding } from "../api/findings";
 import { createAction, listActions, updateAction } from "../api/actions";
 import { createRecommendation, listRecommendations, updateRecommendation } from "../api/recommendations";
+import { deleteAttachment, downloadAttachment, listAttachments, uploadAttachment } from "../api/attachments";
 import type {
   ActionStatus,
   ActionSummary,
+  AttachmentSummary,
   FindingSummary,
   RecommendationPriority,
   RecommendationStatus,
@@ -15,14 +17,19 @@ import type {
 import { Badge } from "../components/Badge";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
+import { DownloadIcon, PaperclipIcon, TrashIcon } from "../components/icons";
+import { formatFileSize } from "../utils/fileSize";
 
 export function FindingDetailPage() {
   const { findingId } = useParams<{ findingId: string }>();
   const [finding, setFinding] = useState<FindingSummary | null>(null);
   const [recommendations, setRecommendations] = useState<RecommendationSummary[]>([]);
   const [actions, setActions] = useState<ActionSummary[]>([]);
+  const [attachments, setAttachments] = useState<AttachmentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [recommendedAction, setRecommendedAction] = useState("");
   const [responsiblePerson, setResponsiblePerson] = useState("");
@@ -39,15 +46,57 @@ export function FindingDetailPage() {
 
   useEffect(() => {
     if (!findingId) return;
-    Promise.all([getFinding(findingId), listRecommendations(findingId), listActions(findingId)])
-      .then(([f, r, a]) => {
+    Promise.all([
+      getFinding(findingId),
+      listRecommendations(findingId),
+      listActions(findingId),
+      listAttachments(findingId),
+    ])
+      .then(([f, r, a, att]) => {
         setFinding(f);
         setRecommendations(r);
         setActions(a);
+        setAttachments(att);
       })
       .catch((err) => setError(extractErrorMessage(err)))
       .finally(() => setLoading(false));
   }, [findingId]);
+
+  async function handleUpload(event: FormEvent) {
+    event.preventDefault();
+    const file = fileInputRef.current?.files?.[0];
+    if (!findingId || !file) return;
+    setError(null);
+    setUploading(true);
+    try {
+      const created = await uploadAttachment(findingId, file);
+      setAttachments((prev) => [created, ...prev]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDelete(attachment: AttachmentSummary) {
+    setError(null);
+    try {
+      await deleteAttachment(attachment.id);
+      setAttachments((prev) => prev.filter((a) => a.id !== attachment.id));
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    }
+  }
+
+  async function handleDownload(attachment: AttachmentSummary) {
+    setError(null);
+    try {
+      await downloadAttachment(attachment);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    }
+  }
 
   async function handleAddRecommendation(event: FormEvent) {
     event.preventDefault();
@@ -173,6 +222,49 @@ export function FindingDetailPage() {
                   <strong>Risk implication:</strong> {finding.riskImplication}
                 </p>
               )}
+            </section>
+
+            <section className="dashboard-section">
+              <h2>Evidence attachments</h2>
+              {attachments.length === 0 && <p className="table-hint">No evidence files uploaded yet.</p>}
+              {attachments.length > 0 && (
+                <ul className="attachment-list">
+                  {attachments.map((attachment) => (
+                    <li className="attachment-row" key={attachment.id}>
+                      <span className="attachment-icon">
+                        <PaperclipIcon width={16} height={16} />
+                      </span>
+                      <div className="attachment-meta">
+                        <div className="attachment-name">{attachment.fileName}</div>
+                        <div className="attachment-sub">
+                          {formatFileSize(attachment.fileSize)}
+                          {attachment.uploadedByName && <> &middot; {attachment.uploadedByName}</>}
+                        </div>
+                      </div>
+                      <div className="attachment-actions">
+                        <button type="button" onClick={() => handleDownload(attachment)} title="Download">
+                          <DownloadIcon width={16} height={16} />
+                        </button>
+                        <button
+                          type="button"
+                          className="danger-ghost"
+                          onClick={() => handleDelete(attachment)}
+                          title="Delete"
+                        >
+                          <TrashIcon width={16} height={16} />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <form className="upload-row" onSubmit={handleUpload}>
+                <input ref={fileInputRef} type="file" />
+                <button type="submit" disabled={uploading}>
+                  {uploading ? "Uploading..." : "Upload evidence"}
+                </button>
+              </form>
             </section>
 
             <section className="dashboard-section">

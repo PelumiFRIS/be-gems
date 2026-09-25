@@ -136,6 +136,36 @@ export function ChevronRightIcon(props: IconProps) {
   );
 }
 
+export function PaperclipIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M8 12.5 15.5 5a3 3 0 0 1 4.2 4.2l-9 9a1.7 1.7 0 0 1-2.4-2.4l8-8" />
+    </svg>
+  );
+}
+
+export function DownloadIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 4v10.5" />
+      <path d="m8 11 4 4 4-4" />
+      <path d="M5 18.5h14" />
+    </svg>
+  );
+}
+
+export function TrashIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 7h14" />
+      <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" />
+      <path d="M7 7v11.5A1.5 1.5 0 0 0 8.5 20h7a1.5 1.5 0 0 0 1.5-1.5V7" />
+      <path d="M10.5 11v5.5" />
+      <path d="M13.5 11v5.5" />
+    </svg>
+  );
+}
+
 export function DirectorsIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

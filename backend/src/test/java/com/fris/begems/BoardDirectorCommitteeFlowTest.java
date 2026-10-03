@@ -10,7 +10,6 @@ import com.fris.begems.committee.dto.AddCommitteeMemberRequest;
 import com.fris.begems.committee.dto.CommitteeSummary;
 import com.fris.begems.committee.dto.CreateCommitteeRequest;
 import com.fris.begems.director.DirectorClassification;
-import com.fris.begems.director.dto.CreateDirectorRequest;
 import com.fris.begems.director.dto.DirectorSummary;
 import com.fris.begems.support.IntegrationTestSupport;
 import org.junit.jupiter.api.Test;
@@ -39,15 +38,15 @@ class BoardDirectorCommitteeFlowTest extends IntegrationTestSupport {
 
         ResponseEntity<DirectorSummary> chairman = restTemplate.exchange(
                 "/api/directors", HttpMethod.POST,
-                authedRequest(token, new CreateDirectorRequest(boardId, "Ada Lovelace", "ada@example.com",
-                        DirectorClassification.CHAIRMAN, null, null)),
+                authedRequest(token, directorRequest(boardId, "Ada Lovelace", "ada@example.com",
+                        DirectorClassification.CHAIRMAN)),
                 DirectorSummary.class);
         assertThat(chairman.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         ResponseEntity<DirectorSummary> ined = restTemplate.exchange(
                 "/api/directors", HttpMethod.POST,
-                authedRequest(token, new CreateDirectorRequest(boardId, "Grace Hopper", "grace@example.com",
-                        DirectorClassification.INDEPENDENT_NON_EXECUTIVE_DIRECTOR, null, null)),
+                authedRequest(token, directorRequest(boardId, "Grace Hopper", "grace@example.com",
+                        DirectorClassification.INDEPENDENT_NON_EXECUTIVE_DIRECTOR)),
                 DirectorSummary.class);
         assertThat(ined.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 

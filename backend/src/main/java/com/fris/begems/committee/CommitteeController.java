@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -44,8 +45,15 @@ public class CommitteeController {
 
     @PostMapping("/{id}/members")
     @PreAuthorize("hasAnyRole('ORG_ADMIN', 'COMPANY_SECRETARY')")
-    public CommitteeSummary addMember(@AuthenticationPrincipal AppUserPrincipal principal, @PathVariable UUID id,
+    public CommitteeSummary assignMember(@AuthenticationPrincipal AppUserPrincipal principal, @PathVariable UUID id,
             @Valid @RequestBody AddCommitteeMemberRequest request) {
-        return committeeService.addMember(principal, id, request);
+        return committeeService.assignMember(principal, id, request);
+    }
+
+    @DeleteMapping("/{id}/members/{directorId}")
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'COMPANY_SECRETARY')")
+    public CommitteeSummary removeMember(@AuthenticationPrincipal AppUserPrincipal principal, @PathVariable UUID id,
+            @PathVariable UUID directorId) {
+        return committeeService.removeMember(principal, id, directorId);
     }
 }

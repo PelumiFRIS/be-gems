@@ -12,4 +12,8 @@ public interface DirectorRepository extends JpaRepository<Director, UUID> {
     Optional<Director> findByIdAndOrganizationId(UUID id, UUID organizationId);
 
     Optional<Director> findByUserId(UUID userId);
+
+    boolean existsByBoardIdAndEmailIgnoreCase(UUID boardId, String email);
+
+    boolean existsByBoardIdAndEmailIgnoreCaseAndIdNot(UUID boardId, String email, UUID id);
 }

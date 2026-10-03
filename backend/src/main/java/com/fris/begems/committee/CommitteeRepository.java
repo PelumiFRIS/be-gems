@@ -10,4 +10,6 @@ public interface CommitteeRepository extends JpaRepository<Committee, UUID> {
     List<Committee> findByBoardId(UUID boardId);
 
     Optional<Committee> findByIdAndOrganizationId(UUID id, UUID organizationId);
+
+    boolean existsByBoardIdAndNameIgnoreCase(UUID boardId, String name);
 }

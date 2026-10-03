@@ -1,34 +1,32 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { addCommitteeMember, createCommittee, listCommittees } from "../api/committees";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { createCommittee, listCommittees } from "../api/committees";
 import { createBoard, listBoards } from "../api/boards";
 import { extractErrorMessage } from "../api/client";
-import { createDirector, inviteDirector, listDirectors } from "../api/directors";
-import type { BoardSummary, CommitteeSummary, DirectorClassification, DirectorSummary } from "../api/types";
+import { inviteDirector, listDirectors } from "../api/directors";
+import type { BoardSummary, CommitteeSummary, DirectorSummary } from "../api/types";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
-
-const CLASSIFICATIONS: DirectorClassification[] = [
-  "CHAIRMAN",
-  "CEO_MD",
-  "EXECUTIVE_DIRECTOR",
-  "NON_EXECUTIVE_DIRECTOR",
-  "INDEPENDENT_NON_EXECUTIVE_DIRECTOR",
-];
+import { CLASSIFICATION_LABELS, canManageBoard } from "../constants/directors";
+import { useAuth } from "../context/AuthContext";
 
 export function BoardSetupPage() {
+  const { user } = useAuth();
+  const location = useLocation();
+  const canManage = canManageBoard(user?.role);
+  const canInvite = user?.role === "COMPANY_SECRETARY" || user?.role === "EVALUATOR";
+
   const [board, setBoard] = useState<BoardSummary | null>(null);
   const [directors, setDirectors] = useState<DirectorSummary[]>([]);
   const [committees, setCommittees] = useState<CommitteeSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const notice = (location.state as { notice?: string } | null)?.notice;
 
   const [boardName, setBoardName] = useState("");
-  const [directorName, setDirectorName] = useState("");
-  const [directorEmail, setDirectorEmail] = useState("");
-  const [directorClassification, setDirectorClassification] = useState<DirectorClassification>(
-    "NON_EXECUTIVE_DIRECTOR",
-  );
   const [committeeName, setCommitteeName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [revealedInvite, setRevealedInvite] = useState<{ name: string; email: string; password: string } | null>(
     null,
@@ -37,10 +35,7 @@ export function BoardSetupPage() {
   useEffect(() => {
     listBoards()
       .then(async (boards) => {
-        if (boards.length === 0) {
-          setLoading(false);
-          return;
-        }
+        if (boards.length === 0) return;
         setBoard(boards[0]);
         const [directorList, committeeList] = await Promise.all([
           listDirectors(boards[0].id),
@@ -53,51 +48,42 @@ export function BoardSetupPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleCreateBoard(event: FormEvent) {
-    event.preventDefault();
+  async function guardedSave(action: () => Promise<void>) {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
     setError(null);
     try {
-      const created = await createBoard({ name: boardName });
+      await action();
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+
+  function handleCreateBoard(event: FormEvent) {
+    event.preventDefault();
+    guardedSave(async () => {
+      const created = await createBoard({ name: boardName.trim() });
       setBoard(created);
       setBoardName("");
-    } catch (err) {
-      setError(extractErrorMessage(err));
-    }
+    });
   }
 
-  async function handleAddDirector(event: FormEvent) {
+  function handleAddCommittee(event: FormEvent) {
     event.preventDefault();
     if (!board) return;
-    setError(null);
-    try {
-      const created = await createDirector({
-        boardId: board.id,
-        name: directorName,
-        email: directorEmail || undefined,
-        classification: directorClassification,
-      });
-      setDirectors((prev) => [...prev, created]);
-      setDirectorName("");
-      setDirectorEmail("");
-    } catch (err) {
-      setError(extractErrorMessage(err));
-    }
-  }
-
-  async function handleAddCommittee(event: FormEvent) {
-    event.preventDefault();
-    if (!board) return;
-    setError(null);
-    try {
-      const created = await createCommittee({ boardId: board.id, name: committeeName });
+    guardedSave(async () => {
+      const created = await createCommittee({ boardId: board.id, name: committeeName.trim() });
       setCommittees((prev) => [...prev, created]);
       setCommitteeName("");
-    } catch (err) {
-      setError(extractErrorMessage(err));
-    }
+    });
   }
 
   async function handleInvite(director: DirectorSummary) {
+    if (invitingId) return;
     setError(null);
     setInvitingId(director.id);
     try {
@@ -111,13 +97,12 @@ export function BoardSetupPage() {
     }
   }
 
-  async function handleMakeChair(committeeId: string, directorId: string) {
-    setError(null);
-    try {
-      const updated = await addCommitteeMember(committeeId, directorId, "CHAIR");
-      setCommittees((prev) => prev.map((c) => (c.id === committeeId ? updated : c)));
-    } catch (err) {
-      setError(extractErrorMessage(err));
+  const directorNames = new Map(directors.map((d) => [d.id, d.name]));
+  const committeesByDirector = new Map<string, string[]>();
+  for (const committee of committees) {
+    for (const member of committee.members) {
+      const label = member.role === "CHAIR" ? `${committee.name} (Chair)` : committee.name;
+      committeesByDirector.set(member.directorId, [...(committeesByDirector.get(member.directorId) ?? []), label]);
     }
   }
 
@@ -128,10 +113,12 @@ export function BoardSetupPage() {
         <TopBar />
         <div className="page-header">
           <h1>Board Setup</h1>
+          <p>Directors, their biodata and committee roles.</p>
         </div>
 
         {error && <p className="form-error">{error}</p>}
-        {loading && <p>Loading...</p>}
+        {notice && <p className="session-notice">{notice}</p>}
+        {loading && <p className="page-status">Loading...</p>}
 
         {revealedInvite && (
           <section className="dashboard-section key-reveal">
@@ -151,101 +138,145 @@ export function BoardSetupPage() {
         {!loading && !board && (
           <section className="dashboard-section">
             <h2>Create your board</h2>
-            <form className="add-form" onSubmit={handleCreateBoard}>
-              <label>
-                Board name
-                <input value={boardName} onChange={(e) => setBoardName(e.target.value)} required />
-              </label>
-              <button type="submit">Create board</button>
-            </form>
+            {canManage ? (
+              <form className="add-form" onSubmit={handleCreateBoard}>
+                <label>
+                  Board name
+                  <input value={boardName} onChange={(e) => setBoardName(e.target.value)} required />
+                </label>
+                <button type="submit" disabled={saving}>
+                  {saving ? "Creating..." : "Create board"}
+                </button>
+              </form>
+            ) : (
+              <p className="table-hint">Your Company Secretary hasn&apos;t set up the board yet.</p>
+            )}
           </section>
         )}
 
         {board && (
           <>
             <section className="dashboard-section">
-              <h2>{board.name}</h2>
+              <div className="section-heading-row">
+                <div>
+                  <h2>Directors</h2>
+                  <p className="table-hint section-subtitle">{board.name}</p>
+                </div>
+                {canManage && (
+                  <Link className="button-link" to="/board-setup/directors/new">
+                    Add director
+                  </Link>
+                )}
+              </div>
 
-              <h3>Directors</h3>
-              <ul className="simple-list">
-                {directors.map((d) => (
-                  <li key={d.id}>
-                    {d.name} &mdash; {d.classification.replaceAll("_", " ")}
-                    {d.hasPortalAccess ? (
-                      <span className="table-hint">Portal access granted</span>
-                    ) : (
-                      <button
-                        type="button"
-                        className="secondary small"
-                        disabled={!d.email || invitingId === d.id}
-                        onClick={() => handleInvite(d)}
-                        title={d.email ? undefined : "Add an email first"}
-                      >
-                        {invitingId === d.id ? "Inviting..." : "Invite to portal"}
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <form className="add-form" onSubmit={handleAddDirector}>
-                <label>
-                  Name
-                  <input value={directorName} onChange={(e) => setDirectorName(e.target.value)} required />
-                </label>
-                <label>
-                  Email (optional)
-                  <input type="email" value={directorEmail} onChange={(e) => setDirectorEmail(e.target.value)} />
-                </label>
-                <label>
-                  Classification
-                  <select
-                    value={directorClassification}
-                    onChange={(e) => setDirectorClassification(e.target.value as DirectorClassification)}
-                  >
-                    {CLASSIFICATIONS.map((c) => (
-                      <option key={c} value={c}>
-                        {c.replaceAll("_", " ")}
-                      </option>
+              {directors.length === 0 ? (
+                <p className="table-hint">No directors yet.</p>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Classification</th>
+                      <th>Email</th>
+                      <th>Committees</th>
+                      <th>Portal</th>
+                      {canManage && <th aria-label="Actions" />}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {directors.map((d) => (
+                      <tr key={d.id}>
+                        <td>
+                          <Link className="row-link" to={`/board-setup/directors/${d.id}`}>
+                            {d.name}
+                          </Link>
+                        </td>
+                        <td>{CLASSIFICATION_LABELS[d.classification]}</td>
+                        <td>{d.email ?? <span className="table-hint">Missing &mdash; please add</span>}</td>
+                        <td>{committeesByDirector.get(d.id)?.join(", ") ?? <span className="table-hint">&mdash;</span>}</td>
+                        <td>
+                          {d.hasPortalAccess ? (
+                            <span className="table-hint">Access granted</span>
+                          ) : canInvite ? (
+                            <button
+                              type="button"
+                              className="secondary small"
+                              disabled={!d.email || invitingId !== null}
+                              onClick={() => handleInvite(d)}
+                              title={d.email ? undefined : "Add an email first"}
+                            >
+                              {invitingId === d.id ? "Inviting..." : "Invite"}
+                            </button>
+                          ) : (
+                            <span className="table-hint">Not invited</span>
+                          )}
+                        </td>
+                        {canManage && (
+                          <td className="cell-actions">
+                            <Link className="text-link" to={`/board-setup/directors/${d.id}/edit`}>
+                              Edit
+                            </Link>
+                          </td>
+                        )}
+                      </tr>
                     ))}
-                  </select>
-                </label>
-                <button type="submit">Add director</button>
-              </form>
+                  </tbody>
+                </table>
+              )}
             </section>
 
             <section className="dashboard-section">
-              <h3>Committees</h3>
-              <ul className="simple-list">
-                {committees.map((c) => (
-                  <li key={c.id}>
-                    {c.name} &mdash; {c.members.length} member{c.members.length === 1 ? "" : "s"}
-                    {directors.length > 0 && (
-                      <select
-                        defaultValue=""
-                        onChange={(e) => {
-                          if (e.target.value) handleMakeChair(c.id, e.target.value);
-                        }}
-                      >
-                        <option value="" disabled>
-                          Set chair...
-                        </option>
-                        {directors.map((d) => (
-                          <option key={d.id} value={d.id}>
-                            {d.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <form className="add-form" onSubmit={handleAddCommittee}>
-                <label>
-                  Committee name
-                  <input value={committeeName} onChange={(e) => setCommitteeName(e.target.value)} required />
-                </label>
-                <button type="submit">Add committee</button>
-              </form>
+              <h2>Committees</h2>
+              {committees.length === 0 ? (
+                <p className="table-hint">No committees yet.</p>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Committee</th>
+                      <th>Chair</th>
+                      <th>Members</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {committees.map((c) => {
+                      const chair = c.members.find((m) => m.role === "CHAIR");
+                      const members = c.members.filter((m) => m.role !== "CHAIR");
+                      return (
+                        <tr key={c.id}>
+                          <td>{c.name}</td>
+                          <td>
+                            {chair ? directorNames.get(chair.directorId) : <span className="table-hint">Not set</span>}
+                          </td>
+                          <td>
+                            {members.length > 0 ? (
+                              members.map((m) => directorNames.get(m.directorId)).join(", ")
+                            ) : (
+                              <span className="table-hint">None</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+              {canManage && (
+                <>
+                  <form className="add-form" onSubmit={handleAddCommittee}>
+                    <label>
+                      Committee name
+                      <input value={committeeName} onChange={(e) => setCommitteeName(e.target.value)} required />
+                    </label>
+                    <button type="submit" disabled={saving}>
+                      {saving ? "Adding..." : "Add committee"}
+                    </button>
+                  </form>
+                  <p className="table-hint form-hint">
+                    To put a director on a committee or set their role, open the director&apos;s profile.
+                  </p>
+                </>
+              )}
             </section>
           </>
         )}

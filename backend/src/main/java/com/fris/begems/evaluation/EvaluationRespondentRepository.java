@@ -14,4 +14,6 @@ public interface EvaluationRespondentRepository extends JpaRepository<Evaluation
     Optional<EvaluationRespondent> findByEvaluationIdAndDirectorId(UUID evaluationId, UUID directorId);
 
     boolean existsByEvaluationIdAndDirectorId(UUID evaluationId, UUID directorId);
+
+    boolean existsByDirectorId(UUID directorId);
 }

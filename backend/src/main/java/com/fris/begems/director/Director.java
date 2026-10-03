@@ -48,24 +48,59 @@ public class Director {
     @Column(name = "term_expiration_date")
     private LocalDate termExpirationDate;
 
+    @Column(name = "re_election_date")
+    private LocalDate reElectionDate;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Column
+    private String phone;
+
+    @Column
+    private String address;
+
+    @Column
+    private String profession;
+
+    @Column
+    private String qualification;
+
+    @Column
+    private String experience;
+
     @Column(name = "user_id")
     private UUID userId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    public static Director create(UUID organizationId, UUID boardId, String name, String email,
-            DirectorClassification classification, LocalDate appointmentDate, LocalDate termExpirationDate) {
+    public static Director create(UUID organizationId, UUID boardId, DirectorProfile profile) {
         Director director = new Director();
         director.setId(UUID.randomUUID());
         director.setOrganizationId(organizationId);
         director.setBoardId(boardId);
-        director.setName(name);
-        director.setEmail(email);
-        director.setClassification(classification);
-        director.setAppointmentDate(appointmentDate);
-        director.setTermExpirationDate(termExpirationDate);
         director.setCreatedAt(Instant.now());
+        director.applyProfile(profile);
         return director;
+    }
+
+    public void applyProfile(DirectorProfile profile) {
+        setName(profile.name().trim());
+        setEmail(profile.email().trim());
+        setClassification(profile.classification());
+        setAppointmentDate(profile.appointmentDate());
+        setTermExpirationDate(profile.termExpirationDate());
+        setReElectionDate(profile.reElectionDate());
+        setDateOfBirth(profile.dateOfBirth());
+        setPhone(blankToNull(profile.phone()));
+        setAddress(blankToNull(profile.address()));
+        setProfession(blankToNull(profile.profession()));
+        setQualification(blankToNull(profile.qualification()));
+        setExperience(blankToNull(profile.experience()));
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

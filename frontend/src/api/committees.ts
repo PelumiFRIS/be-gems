@@ -22,3 +22,8 @@ export async function addCommitteeMember(
   });
   return data;
 }
+
+export async function removeCommitteeMember(committeeId: string, directorId: string): Promise<CommitteeSummary> {
+  const { data } = await apiClient.delete<CommitteeSummary>(`/api/committees/${committeeId}/members/${directorId}`);
+  return data;
+}

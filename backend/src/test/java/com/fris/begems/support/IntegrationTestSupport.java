@@ -84,11 +84,17 @@ public abstract class IntegrationTestSupport {
     protected DirectorSummary createDirector(String adminToken, UUID boardId, String name) {
         ResponseEntity<DirectorSummary> response = restTemplate.exchange(
                 "/api/directors", HttpMethod.POST,
-                authedRequest(adminToken, new CreateDirectorRequest(boardId, name, uniqueEmail(),
-                        DirectorClassification.NON_EXECUTIVE_DIRECTOR, null, null)),
+                authedRequest(adminToken, directorRequest(boardId, name, uniqueEmail(),
+                        DirectorClassification.NON_EXECUTIVE_DIRECTOR)),
                 DirectorSummary.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         return response.getBody();
+    }
+
+    protected CreateDirectorRequest directorRequest(UUID boardId, String name, String email,
+            DirectorClassification classification) {
+        return new CreateDirectorRequest(boardId, name, email, classification, null, null, null, null, null, null,
+                null, null, null);
     }
 
     protected AuthResponse inviteDirectorAndLogin(String adminToken, DirectorSummary director) {

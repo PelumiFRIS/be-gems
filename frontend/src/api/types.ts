@@ -35,7 +35,7 @@ export type DirectorClassification =
   | "EXECUTIVE_DIRECTOR"
   | "NON_EXECUTIVE_DIRECTOR"
   | "INDEPENDENT_NON_EXECUTIVE_DIRECTOR"
-  | "CEO_MD";
+  | "MD_CEO";
 
 export interface BoardSummary {
   id: string;
@@ -66,13 +66,56 @@ export interface InviteDirectorResponse {
   temporaryPassword: string;
 }
 
-export interface CreateDirectorPayload {
-  boardId: string;
+export interface DirectorProfilePayload {
   name: string;
-  email?: string;
+  email: string;
   classification: DirectorClassification;
   appointmentDate?: string;
   termExpirationDate?: string;
+  reElectionDate?: string;
+  dateOfBirth?: string;
+  phone?: string;
+  address?: string;
+  profession?: string;
+  qualification?: string;
+  experience?: string;
+}
+
+export interface CreateDirectorPayload extends DirectorProfilePayload {
+  boardId: string;
+}
+
+export interface DirectorCvSummary {
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  uploadedAt: string;
+}
+
+export interface DirectorCommitteeMembership {
+  committeeId: string;
+  committeeName: string;
+  role: CommitteeMemberRole;
+}
+
+export interface DirectorDetail {
+  id: string;
+  boardId: string;
+  name: string;
+  email: string | null;
+  classification: DirectorClassification;
+  appointmentDate: string | null;
+  termExpirationDate: string | null;
+  reElectionDate: string | null;
+  dateOfBirth: string | null;
+  phone: string | null;
+  address: string | null;
+  profession: string | null;
+  qualification: string | null;
+  experience: string | null;
+  hasPortalAccess: boolean;
+  cv: DirectorCvSummary | null;
+  committees: DirectorCommitteeMembership[];
 }
 
 export type CommitteeMemberRole = "CHAIR" | "MEMBER";

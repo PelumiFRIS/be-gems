@@ -10,4 +10,6 @@ public interface EvaluationRepository extends JpaRepository<Evaluation, UUID> {
     List<Evaluation> findByBoardId(UUID boardId);
 
     Optional<Evaluation> findByIdAndOrganizationId(UUID id, UUID organizationId);
+
+    boolean existsBySubjectDirectorId(UUID subjectDirectorId);
 }

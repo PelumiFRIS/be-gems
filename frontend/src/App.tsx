@@ -4,6 +4,8 @@ import { AuthProvider } from "./context/AuthContext";
 import { ActionRegisterPage } from "./pages/ActionRegisterPage";
 import { BoardSetupPage } from "./pages/BoardSetupPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { DirectorFormPage } from "./pages/DirectorFormPage";
+import { DirectorProfilePage } from "./pages/DirectorProfilePage";
 import { EvaluationResultsPage } from "./pages/EvaluationResultsPage";
 import { EvaluationSetupPage } from "./pages/EvaluationSetupPage";
 import { EvaluationsListPage } from "./pages/EvaluationsListPage";
@@ -32,6 +34,30 @@ function App() {
           element={
             <ProtectedRoute>
               <BoardSetupPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/board-setup/directors/new"
+          element={
+            <ProtectedRoute>
+              <DirectorFormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/board-setup/directors/:id"
+          element={
+            <ProtectedRoute>
+              <DirectorProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/board-setup/directors/:id/edit"
+          element={
+            <ProtectedRoute>
+              <DirectorFormPage />
             </ProtectedRoute>
           }
         />

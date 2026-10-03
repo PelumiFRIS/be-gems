@@ -12,6 +12,23 @@ export interface UserSummary {
   organizationName: string;
 }
 
+export interface CreateUserPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: Role;
+}
+
+export interface CreatedUserResponse {
+  user: UserSummary;
+  temporaryPassword: string;
+}
+
+export interface TemporaryPasswordResponse {
+  email: string;
+  temporaryPassword: string;
+}
+
 export interface AuthResponse {
   accessToken: string;
   user: UserSummary;

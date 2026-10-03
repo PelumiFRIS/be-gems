@@ -166,6 +166,17 @@ export function TrashIcon(props: IconProps) {
   );
 }
 
+export function KeyIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="8" cy="14" r="4" />
+      <path d="m11 11 8.5-8.5" />
+      <path d="m16.5 5.5 2.5 2.5" />
+      <path d="m14 8 2 2" />
+    </svg>
+  );
+}
+
 export function DirectorsIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

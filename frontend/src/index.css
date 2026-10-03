@@ -614,6 +614,14 @@ label {
   margin-bottom: 24px;
 }
 
+.page-header:has(> button) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .page-header h1 {
   margin: 0 0 4px;
   color: var(--primary-dark);
@@ -1245,6 +1253,15 @@ label {
 .detail-field dd {
   margin: 0;
   white-space: pre-line;
+}
+
+.row-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.narrow-section {
+  max-width: 520px;
 }
 
 .confirm-panel {

@@ -2,7 +2,15 @@ import { NavLink } from "react-router-dom";
 import { ROLE_LABELS } from "../constants/roles";
 import { useAuth } from "../context/AuthContext";
 import frisLogoWhite from "../assets/fris-logo-white.png";
-import { ActionsIcon, BoardIcon, DashboardIcon, EvaluationsIcon, MyEvaluationsIcon } from "./icons";
+import {
+  ActionsIcon,
+  BoardIcon,
+  DashboardIcon,
+  DirectorsIcon,
+  EvaluationsIcon,
+  KeyIcon,
+  MyEvaluationsIcon,
+} from "./icons";
 import { initials } from "../utils/initials";
 
 export function Sidebar() {
@@ -40,6 +48,18 @@ export function Sidebar() {
         <li>
           <NavLink to="/actions">
             <ActionsIcon /> Action Register
+          </NavLink>
+        </li>
+        {user?.role === "ORG_ADMIN" && (
+          <li>
+            <NavLink to="/users">
+              <DirectorsIcon /> Users
+            </NavLink>
+          </li>
+        )}
+        <li>
+          <NavLink to="/account">
+            <KeyIcon /> My Account
           </NavLink>
         </li>
       </ul>

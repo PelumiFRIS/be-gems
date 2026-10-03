@@ -223,6 +223,15 @@ export function BoardSetupPage() {
                   </tbody>
                 </table>
               )}
+              {user?.role === "ORG_ADMIN" && directors.some((d) => !d.hasPortalAccess) && (
+                <p className="table-hint form-hint">
+                  Portal invitations are sent by a Company Secretary or Evaluator. You can add one on the{" "}
+                  <Link className="text-link" to="/users">
+                    Users
+                  </Link>{" "}
+                  page.
+                </p>
+              )}
             </section>
 
             <section className="dashboard-section">

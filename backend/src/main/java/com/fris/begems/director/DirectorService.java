@@ -16,13 +16,12 @@ import com.fris.begems.director.dto.UpdateDirectorRequest;
 import com.fris.begems.evaluation.EvaluationRepository;
 import com.fris.begems.evaluation.EvaluationRespondentRepository;
 import com.fris.begems.security.AppUserPrincipal;
+import com.fris.begems.security.TemporaryPasswordGenerator;
 import com.fris.begems.user.Role;
 import com.fris.begems.user.User;
 import com.fris.begems.user.UserRepository;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -35,7 +34,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class DirectorService {
 
-    private static final int TEMPORARY_PASSWORD_BYTES = 18;
     private static final long MAX_CV_SIZE_BYTES = 10L * 1024 * 1024;
     private static final Set<String> CV_EXTENSIONS = Set.of("pdf", "doc", "docx");
     private static final Set<Role> BIODATA_VIEWER_ROLES = Set.of(Role.ORG_ADMIN, Role.COMPANY_SECRETARY,
@@ -51,13 +49,13 @@ public class DirectorService {
     private final EvaluationRespondentRepository evaluationRespondentRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
-    private final SecureRandom secureRandom = new SecureRandom();
+    private final TemporaryPasswordGenerator temporaryPasswordGenerator;
 
     public DirectorService(DirectorRepository directorRepository, DirectorCvRepository directorCvRepository,
             BoardRepository boardRepository, UserRepository userRepository, CommitteeService committeeService,
             CommitteeMemberRepository committeeMemberRepository, EvaluationRepository evaluationRepository,
             EvaluationRespondentRepository evaluationRespondentRepository, PasswordEncoder passwordEncoder,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService, TemporaryPasswordGenerator temporaryPasswordGenerator) {
         this.directorRepository = directorRepository;
         this.directorCvRepository = directorCvRepository;
         this.boardRepository = boardRepository;
@@ -68,6 +66,7 @@ public class DirectorService {
         this.evaluationRespondentRepository = evaluationRespondentRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
+        this.temporaryPasswordGenerator = temporaryPasswordGenerator;
     }
 
     public List<DirectorSummary> listForBoard(AppUserPrincipal principal, UUID boardId) {
@@ -213,7 +212,7 @@ public class DirectorService {
             throw ApiException.conflict("An account with this email already exists");
         }
 
-        String temporaryPassword = generateTemporaryPassword();
+        String temporaryPassword = temporaryPasswordGenerator.generate();
         String[] nameParts = splitName(director.getName());
         User user = User.create(principal.getOrganizationId(), director.getEmail(),
                 passwordEncoder.encode(temporaryPassword), nameParts[0], nameParts[1], Role.DIRECTOR);
@@ -276,12 +275,6 @@ public class DirectorService {
             return new String[] {trimmed, ""};
         }
         return new String[] {trimmed.substring(0, spaceIndex), trimmed.substring(spaceIndex + 1).trim()};
-    }
-
-    private String generateTemporaryPassword() {
-        byte[] bytes = new byte[TEMPORARY_PASSWORD_BYTES];
-        secureRandom.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private void requireBoardInOrganization(AppUserPrincipal principal, UUID boardId) {

@@ -3,14 +3,18 @@ import { Link, useParams } from "react-router-dom";
 import { extractErrorMessage } from "../api/client";
 import { getEvaluation } from "../api/evaluations";
 import { createFinding, listFindings } from "../api/findings";
+import { openEvaluationReport } from "../api/reports";
 import { calculateScores, getScores } from "../api/scores";
 import type { EvaluationDetail, FindingSeverity, FindingSummary, ScoreRowSummary } from "../api/types";
 import { Badge } from "../components/Badge";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
+import { useAuth } from "../context/AuthContext";
 
 export function EvaluationResultsPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const [openingReport, setOpeningReport] = useState(false);
   const [detail, setDetail] = useState<EvaluationDetail | null>(null);
   const [scores, setScores] = useState<ScoreRowSummary[]>([]);
   const [findings, setFindings] = useState<FindingSummary[]>([]);
@@ -52,6 +56,24 @@ export function EvaluationResultsPage() {
     }
   }
 
+  async function handleOpenReport() {
+    if (!id) return;
+    setError(null);
+    setOpeningReport(true);
+    const tab = window.open("", "_blank");
+    if (tab) {
+      tab.document.title = "Preparing report…";
+      tab.document.body.textContent = "Preparing report…";
+    }
+    try {
+      await openEvaluationReport(id, tab);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setOpeningReport(false);
+    }
+  }
+
   async function handleAddFinding(event: FormEvent) {
     event.preventDefault();
     if (!id) return;
@@ -85,6 +107,11 @@ export function EvaluationResultsPage() {
   const bgeiCategories = scores.filter((s) => s.scopeType === "BGEI_CATEGORY");
   const bgeiOverall = scores.find((s) => s.scopeType === "BGEI_OVERALL");
 
+  const isIndividual = detail?.evaluation.evaluationType === "DIRECTOR_PEER";
+  const canOpenReport =
+    scores.length > 0 &&
+    (user?.role === "COMPANY_SECRETARY" || user?.role === "EVALUATOR" || (user?.role === "ORG_ADMIN" && !isIndividual));
+
   return (
     <div className="app-shell">
       <Sidebar />
@@ -92,6 +119,15 @@ export function EvaluationResultsPage() {
         <TopBar />
         <div className="page-header">
           <h1>Evaluation Results</h1>
+          {canOpenReport && (
+            <button type="button" className="secondary small" onClick={handleOpenReport} disabled={openingReport}>
+              {openingReport
+                ? "Preparing report..."
+                : isIndividual
+                  ? "Open confidential director report"
+                  : "Open board evaluation report"}
+            </button>
+          )}
         </div>
 
         {error && <p className="form-error">{error}</p>}

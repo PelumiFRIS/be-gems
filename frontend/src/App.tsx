@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
+import { AccountPage } from "./pages/AccountPage";
 import { ActionRegisterPage } from "./pages/ActionRegisterPage";
 import { BoardSetupPage } from "./pages/BoardSetupPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -14,6 +15,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { MyEvaluationsPage } from "./pages/MyEvaluationsPage";
 import { RespondentQuestionnairePage } from "./pages/RespondentQuestionnairePage";
 import { SignupPage } from "./pages/SignupPage";
+import { UsersPage } from "./pages/UsersPage";
 
 function App() {
   return (
@@ -114,6 +116,22 @@ function App() {
           element={
             <ProtectedRoute>
               <RespondentQuestionnairePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute>
+              <UsersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/account"
+          element={
+            <ProtectedRoute>
+              <AccountPage />
             </ProtectedRoute>
           }
         />

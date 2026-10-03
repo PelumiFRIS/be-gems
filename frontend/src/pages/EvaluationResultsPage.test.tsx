@@ -6,6 +6,7 @@ import type { EvaluationDetail, FindingSummary, ScoreRowSummary, UserSummary } f
 import { useAuth } from "../context/AuthContext";
 import { getEvaluation } from "../api/evaluations";
 import { createFinding, listFindings } from "../api/findings";
+import { openEvaluationReport } from "../api/reports";
 import { calculateScores, getScores } from "../api/scores";
 import { EvaluationResultsPage } from "./EvaluationResultsPage";
 
@@ -27,12 +28,17 @@ vi.mock("../api/findings", () => ({
   createFinding: vi.fn(),
 }));
 
+vi.mock("../api/reports", () => ({
+  openEvaluationReport: vi.fn(),
+}));
+
 const mockedUseAuth = vi.mocked(useAuth);
 const mockedGetEvaluation = vi.mocked(getEvaluation);
 const mockedGetScores = vi.mocked(getScores);
 const mockedCalculateScores = vi.mocked(calculateScores);
 const mockedListFindings = vi.mocked(listFindings);
 const mockedCreateFinding = vi.mocked(createFinding);
+const mockedOpenEvaluationReport = vi.mocked(openEvaluationReport);
 
 const user: UserSummary = {
   id: "user-1",
@@ -219,6 +225,62 @@ describe("EvaluationResultsPage", () => {
     renderPage();
 
     expect(await screen.findByText("Scores are available once the evaluation is closed.")).toBeInTheDocument();
+  });
+
+  it("opens the board report in a new tab once scores exist", async () => {
+    const tab = { document: { title: "", body: { textContent: "" } }, close: vi.fn() } as unknown as Window;
+    const openSpy = vi.spyOn(window, "open").mockReturnValue(tab);
+    mockedGetEvaluation.mockResolvedValue(boardEvaluationDetail("SCORED"));
+    mockedGetScores.mockResolvedValue(boardScores);
+    mockedOpenEvaluationReport.mockResolvedValue();
+
+    renderPage();
+    await userEvent.click(await screen.findByRole("button", { name: "Open board evaluation report" }));
+
+    expect(openSpy).toHaveBeenCalledWith("", "_blank");
+    expect(mockedOpenEvaluationReport).toHaveBeenCalledWith(EVAL_ID, tab);
+    openSpy.mockRestore();
+  });
+
+  it("shows the server's message when the report can't be generated", async () => {
+    const openSpy = vi.spyOn(window, "open").mockReturnValue(null);
+    mockedGetEvaluation.mockResolvedValue(boardEvaluationDetail("SCORED"));
+    mockedGetScores.mockResolvedValue(boardScores);
+    mockedOpenEvaluationReport.mockRejectedValue(
+      Object.assign(new Error("conflict"), {
+        isAxiosError: true,
+        response: { data: { message: "The report is available once scores have been calculated" } },
+      }),
+    );
+
+    renderPage();
+    await userEvent.click(await screen.findByRole("button", { name: "Open board evaluation report" }));
+
+    expect(await screen.findByText("The report is available once scores have been calculated")).toBeInTheDocument();
+    openSpy.mockRestore();
+  });
+
+  it("doesn't offer the confidential director report to an Organisation Administrator", async () => {
+    mockedUseAuth.mockReturnValue({
+      user: { ...user, role: "ORG_ADMIN" },
+      loading: false,
+    } as unknown as ReturnType<typeof useAuth>);
+    mockedGetEvaluation.mockResolvedValue(peerEvaluationDetail());
+    mockedGetScores.mockResolvedValue(peerScores);
+
+    renderPage();
+
+    expect(await screen.findByText("Overall Director Score")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /report/i })).not.toBeInTheDocument();
+  });
+
+  it("offers the confidential director report to a Company Secretary", async () => {
+    mockedGetEvaluation.mockResolvedValue(peerEvaluationDetail());
+    mockedGetScores.mockResolvedValue(peerScores);
+
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Open confidential director report" })).toBeInTheDocument();
   });
 
   it("lists existing findings and lets a Company Secretary record a new one", async () => {

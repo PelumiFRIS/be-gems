@@ -13,7 +13,7 @@ import com.fris.begems.director.dto.InviteDirectorResponse;
 import com.fris.begems.organization.dto.OrganizationSignupRequest;
 import com.fris.begems.user.Role;
 import com.fris.begems.user.dto.CreateUserRequest;
-import com.fris.begems.user.dto.UserSummary;
+import com.fris.begems.user.dto.CreatedUserResponse;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
@@ -59,16 +59,22 @@ public abstract class IntegrationTestSupport {
      * actor who can manage evaluations.
      */
     protected AuthResponse createCompanySecretaryAndLogin(String adminToken) {
-        String email = uniqueEmail();
-        ResponseEntity<UserSummary> response = restTemplate.exchange(
-                "/api/users", HttpMethod.POST,
-                authedRequest(adminToken, new CreateUserRequest("Board", "Secretary", email, "password123",
-                        Role.COMPANY_SECRETARY)),
-                UserSummary.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return createUserAndLogin(adminToken, "Board", "Secretary", Role.COMPANY_SECRETARY);
+    }
 
+    protected AuthResponse createUserAndLogin(String adminToken, String firstName, String lastName, Role role) {
+        String email = uniqueEmail();
+        ResponseEntity<CreatedUserResponse> response = restTemplate.exchange(
+                "/api/users", HttpMethod.POST,
+                authedRequest(adminToken, new CreateUserRequest(firstName, lastName, email, role)),
+                CreatedUserResponse.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return login(email, response.getBody().temporaryPassword());
+    }
+
+    protected AuthResponse login(String email, String password) {
         ResponseEntity<AuthResponse> loginResponse = restTemplate.postForEntity(
-                "/api/auth/login", new LoginRequest(email, "password123"), AuthResponse.class);
+                "/api/auth/login", new LoginRequest(email, password), AuthResponse.class);
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         return loginResponse.getBody();
     }

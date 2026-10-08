@@ -50,6 +50,7 @@ public class OrganizationService {
                 request.adminFirstName(),
                 request.adminLastName(),
                 Role.ORG_ADMIN);
+        admin.setCompanySecretaryAccess(true);
         userRepository.save(admin);
 
         auditLogService.record(new AppUserPrincipal(admin), AuditAction.ORGANIZATION_SIGNUP,

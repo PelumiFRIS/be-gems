@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UserSummary } from "../api/types";
 import { useAuth } from "../context/AuthContext";
-import { createUser, listUsers, resetUserPassword } from "../api/users";
+import { changeCompanySecretaryAccess, createUser, listUsers, resetUserPassword } from "../api/users";
 import { UsersPage } from "./UsersPage";
 
 vi.mock("../context/AuthContext", () => ({
@@ -17,12 +17,14 @@ vi.mock("../api/users", () => ({
   changeUserRole: vi.fn(),
   changeUserStatus: vi.fn(),
   resetUserPassword: vi.fn(),
+  changeCompanySecretaryAccess: vi.fn(),
 }));
 
 const mockedUseAuth = vi.mocked(useAuth);
 const mockedListUsers = vi.mocked(listUsers);
 const mockedCreateUser = vi.mocked(createUser);
 const mockedResetUserPassword = vi.mocked(resetUserPassword);
+const mockedChangeCompanySecretaryAccess = vi.mocked(changeCompanySecretaryAccess);
 
 const admin: UserSummary = {
   id: "admin-1",
@@ -33,6 +35,7 @@ const admin: UserSummary = {
   status: "ACTIVE",
   organizationId: "org-1",
   organizationName: "Local UI Test Org",
+  companySecretaryAccess: false,
 };
 
 const secretary: UserSummary = {
@@ -55,6 +58,25 @@ function renderPage() {
 describe("UsersPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("lets an administrator give themselves Company Secretary access", async () => {
+    const refreshUser = vi.fn().mockResolvedValue(undefined);
+    mockedUseAuth.mockReturnValue({ user: admin, loading: false, refreshUser } as unknown as ReturnType<
+      typeof useAuth
+    >);
+    mockedListUsers.mockResolvedValue([admin, secretary]);
+    mockedChangeCompanySecretaryAccess.mockResolvedValue({ ...admin, companySecretaryAccess: true });
+    const userEvents = userEvent.setup();
+    renderPage();
+
+    const checkboxes = await screen.findAllByRole("checkbox", { name: "Also Company Secretary" });
+    expect(checkboxes).toHaveLength(1);
+    await userEvents.click(checkboxes[0]);
+
+    expect(mockedChangeCompanySecretaryAccess).toHaveBeenCalledWith("admin-1", true);
+    expect(await screen.findByRole("checkbox", { name: "Also Company Secretary" })).toBeChecked();
+    expect(refreshUser).toHaveBeenCalled();
   });
 
   it("creates a user and shows their temporary password once", async () => {

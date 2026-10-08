@@ -14,6 +14,8 @@ import com.fris.begems.organization.dto.OrganizationSignupRequest;
 import com.fris.begems.user.Role;
 import com.fris.begems.user.dto.CreateUserRequest;
 import com.fris.begems.user.dto.CreatedUserResponse;
+import com.fris.begems.user.dto.UpdateCompanySecretaryAccessRequest;
+import com.fris.begems.user.dto.UserSummary;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
@@ -77,6 +79,14 @@ public abstract class IntegrationTestSupport {
                 "/api/auth/login", new LoginRequest(email, password), AuthResponse.class);
         assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         return loginResponse.getBody();
+    }
+
+    protected UserSummary setCompanySecretaryAccess(String adminToken, UUID userId, boolean enabled) {
+        ResponseEntity<UserSummary> response = restTemplate.exchange(
+                "/api/users/" + userId + "/company-secretary-access", HttpMethod.PUT,
+                authedRequest(adminToken, new UpdateCompanySecretaryAccessRequest(enabled)), UserSummary.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        return response.getBody();
     }
 
     protected BoardSummary createBoard(String adminToken, String name) {

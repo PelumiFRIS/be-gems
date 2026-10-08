@@ -4,6 +4,7 @@ import type {
   CreateEvaluationPayload,
   EvaluationDetail,
   EvaluationSummary,
+  ReminderResult,
 } from "./types";
 
 export async function listEvaluations(boardId: string): Promise<EvaluationSummary[]> {
@@ -33,5 +34,10 @@ export async function launchEvaluation(evaluationId: string): Promise<Evaluation
 
 export async function closeEvaluation(evaluationId: string): Promise<EvaluationSummary> {
   const { data } = await apiClient.post<EvaluationSummary>(`/api/evaluations/${evaluationId}/close`);
+  return data;
+}
+
+export async function sendEvaluationReminders(evaluationId: string): Promise<ReminderResult> {
+  const { data } = await apiClient.post<ReminderResult>(`/api/evaluations/${evaluationId}/reminders`);
   return data;
 }

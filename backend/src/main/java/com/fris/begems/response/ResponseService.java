@@ -11,10 +11,12 @@ import com.fris.begems.evaluation.EvaluationStatus;
 import com.fris.begems.evaluation.RespondentStatus;
 import com.fris.begems.framework.Question;
 import com.fris.begems.framework.QuestionRepository;
+import com.fris.begems.notification.NotificationService;
 import com.fris.begems.response.dto.MyEvaluationSummary;
 import com.fris.begems.response.dto.QuestionWithAnswer;
 import com.fris.begems.response.dto.SaveResponseRequest;
 import com.fris.begems.security.AppUserPrincipal;
+import com.fris.begems.user.UserRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -31,15 +33,20 @@ public class ResponseService {
     private final EvaluationRepository evaluationRepository;
     private final QuestionRepository questionRepository;
     private final ResponseRepository responseRepository;
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public ResponseService(DirectorRepository directorRepository,
             EvaluationRespondentRepository respondentRepository, EvaluationRepository evaluationRepository,
-            QuestionRepository questionRepository, ResponseRepository responseRepository) {
+            QuestionRepository questionRepository, ResponseRepository responseRepository,
+            UserRepository userRepository, NotificationService notificationService) {
         this.directorRepository = directorRepository;
         this.respondentRepository = respondentRepository;
         this.evaluationRepository = evaluationRepository;
         this.questionRepository = questionRepository;
         this.responseRepository = responseRepository;
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     public List<MyEvaluationSummary> listMyEvaluations(AppUserPrincipal principal) {
@@ -110,6 +117,17 @@ public class ResponseService {
         respondent.setStatus(RespondentStatus.SUBMITTED);
         respondent.setSubmittedAt(Instant.now());
         respondentRepository.save(respondent);
+
+        Evaluation evaluation = requireEvaluation(evaluationId);
+        String subjectName = evaluation.getSubjectDirectorId() == null ? null
+                : directorRepository.findById(evaluation.getSubjectDirectorId()).map(Director::getName).orElse(null);
+        userRepository.findById(principal.getUserId())
+                .ifPresent(user -> notificationService.notifySubmissionConfirmed(evaluation, subjectName, user));
+
+        List<EvaluationRespondent> all = respondentRepository.findByEvaluationId(evaluationId);
+        if (all.stream().allMatch(r -> r.getStatus() == RespondentStatus.SUBMITTED)) {
+            notificationService.notifyAllResponsesSubmitted(evaluation, subjectName, all.size());
+        }
     }
 
     private void validateAnswerShape(Question question, SaveResponseRequest request) {

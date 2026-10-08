@@ -3,18 +3,19 @@ import { Link, useLocation } from "react-router-dom";
 import { createCommittee, listCommittees } from "../api/committees";
 import { createBoard, listBoards } from "../api/boards";
 import { extractErrorMessage } from "../api/client";
-import { inviteDirector, listDirectors } from "../api/directors";
+import { deleteDirector, inviteDirector, listDirectors } from "../api/directors";
 import type { BoardSummary, CommitteeSummary, DirectorSummary } from "../api/types";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
 import { CLASSIFICATION_LABELS, canManageBoard } from "../constants/directors";
+import { canManageEvaluations } from "../constants/roles";
 import { useAuth } from "../context/AuthContext";
 
 export function BoardSetupPage() {
   const { user } = useAuth();
   const location = useLocation();
   const canManage = canManageBoard(user?.role);
-  const canInvite = user?.role === "COMPANY_SECRETARY" || user?.role === "EVALUATOR";
+  const canInvite = canManageEvaluations(user);
 
   const [board, setBoard] = useState<BoardSummary | null>(null);
   const [directors, setDirectors] = useState<DirectorSummary[]>([]);
@@ -28,6 +29,8 @@ export function BoardSetupPage() {
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [revealedInvite, setRevealedInvite] = useState<{ name: string; email: string; password: string } | null>(
     null,
   );
@@ -94,6 +97,24 @@ export function BoardSetupPage() {
       setError(extractErrorMessage(err));
     } finally {
       setInvitingId(null);
+    }
+  }
+
+  async function handleDelete(director: DirectorSummary) {
+    if (deletingId) return;
+    setError(null);
+    setDeletingId(director.id);
+    try {
+      await deleteDirector(director.id);
+      setDirectors((prev) => prev.filter((d) => d.id !== director.id));
+      setCommittees((prev) =>
+        prev.map((c) => ({ ...c, members: c.members.filter((m) => m.directorId !== director.id) })),
+      );
+      setConfirmingDeleteId(null);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -213,9 +234,43 @@ export function BoardSetupPage() {
                         </td>
                         {canManage && (
                           <td className="cell-actions">
-                            <Link className="text-link" to={`/board-setup/directors/${d.id}/edit`}>
-                              Edit
-                            </Link>
+                            {confirmingDeleteId === d.id ? (
+                              <span className="inline-confirm">
+                                <span>Delete {d.name}?</span>
+                                <button
+                                  type="button"
+                                  className="danger small"
+                                  onClick={() => handleDelete(d)}
+                                  disabled={deletingId !== null}
+                                >
+                                  {deletingId === d.id ? "Deleting..." : "Delete"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="secondary small"
+                                  onClick={() => setConfirmingDeleteId(null)}
+                                  disabled={deletingId !== null}
+                                >
+                                  Cancel
+                                </button>
+                              </span>
+                            ) : (
+                              <>
+                                <Link className="text-link" to={`/board-setup/directors/${d.id}/edit`}>
+                                  Edit
+                                </Link>
+                                <button
+                                  type="button"
+                                  className="link-button danger-link"
+                                  onClick={() => {
+                                    setError(null);
+                                    setConfirmingDeleteId(d.id);
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </>
+                            )}
                           </td>
                         )}
                       </tr>
@@ -223,9 +278,10 @@ export function BoardSetupPage() {
                   </tbody>
                 </table>
               )}
-              {user?.role === "ORG_ADMIN" && directors.some((d) => !d.hasPortalAccess) && (
+              {user?.role === "ORG_ADMIN" && !canInvite && directors.some((d) => !d.hasPortalAccess) && (
                 <p className="table-hint form-hint">
-                  Portal invitations are sent by a Company Secretary or Evaluator. You can add one on the{" "}
+                  Portal invitations are sent by a Company Secretary or Evaluator. If you also act as Company
+                  Secretary, turn on Company Secretary access for your account on the{" "}
                   <Link className="text-link" to="/users">
                     Users
                   </Link>{" "}

@@ -7,8 +7,12 @@ import { createEvaluation, listEvaluations } from "../api/evaluations";
 import type { BoardSummary, DirectorSummary, EvaluationSummary, EvaluationType } from "../api/types";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
+import { canManageEvaluations } from "../constants/roles";
+import { useAuth } from "../context/AuthContext";
 
 export function EvaluationsListPage() {
+  const { user } = useAuth();
+  const canCreate = canManageEvaluations(user);
   const [board, setBoard] = useState<BoardSummary | null>(null);
   const [directors, setDirectors] = useState<DirectorSummary[]>([]);
   const [evaluations, setEvaluations] = useState<EvaluationSummary[]>([]);
@@ -95,6 +99,21 @@ export function EvaluationsListPage() {
 
             <section className="dashboard-section">
               <h2>Create an evaluation</h2>
+              {!canCreate ? (
+                <p className="table-hint">
+                  Evaluations are created by a Company Secretary or Evaluator.
+                  {user?.role === "ORG_ADMIN" && (
+                    <>
+                      {" "}
+                      If you also act as Company Secretary, turn on Company Secretary access for your account on the{" "}
+                      <Link className="text-link" to="/users">
+                        Users
+                      </Link>{" "}
+                      page.
+                    </>
+                  )}
+                </p>
+              ) : (
               <form className="add-form" onSubmit={handleCreate}>
                 <label>
                   Type
@@ -132,6 +151,7 @@ export function EvaluationsListPage() {
                   {creating ? "Creating..." : "Create evaluation"}
                 </button>
               </form>
+              )}
             </section>
           </>
         )}

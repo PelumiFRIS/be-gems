@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { ROLE_LABELS } from "../constants/roles";
+import { roleLabel } from "../constants/roles";
 import { useAuth } from "../context/AuthContext";
 import frisLogoWhite from "../assets/fris-logo-white.png";
 import {
@@ -70,7 +70,7 @@ export function Sidebar() {
             <div className="sidebar-user-name">
               {user.firstName} {user.lastName}
             </div>
-            <div className="sidebar-user-role">{ROLE_LABELS[user.role]}</div>
+            <div className="sidebar-user-role">{roleLabel(user)}</div>
           </div>
         </div>
       )}

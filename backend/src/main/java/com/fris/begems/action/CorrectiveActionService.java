@@ -12,6 +12,7 @@ import com.fris.begems.evaluation.Evaluation;
 import com.fris.begems.evaluation.EvaluationRepository;
 import com.fris.begems.finding.Finding;
 import com.fris.begems.finding.FindingRepository;
+import com.fris.begems.notification.NotificationService;
 import com.fris.begems.security.AppUserPrincipal;
 import java.time.LocalDate;
 import java.util.List;
@@ -28,13 +29,16 @@ public class CorrectiveActionService {
     private final FindingRepository findingRepository;
     private final EvaluationRepository evaluationRepository;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public CorrectiveActionService(CorrectiveActionRepository actionRepository, FindingRepository findingRepository,
-            EvaluationRepository evaluationRepository, AuditLogService auditLogService) {
+            EvaluationRepository evaluationRepository, AuditLogService auditLogService,
+            NotificationService notificationService) {
         this.actionRepository = actionRepository;
         this.findingRepository = findingRepository;
         this.evaluationRepository = evaluationRepository;
         this.auditLogService = auditLogService;
+        this.notificationService = notificationService;
     }
 
     public List<ActionSummary> listForFinding(AppUserPrincipal principal, UUID findingId) {
@@ -106,6 +110,8 @@ public class CorrectiveActionService {
         if (newlyCompleted) {
             auditLogService.record(principal, AuditAction.ACTION_CLOSED, AuditEntityType.ACTION, action.getId(),
                     "Closed a corrective action");
+            notificationService.notifyActionClosed(principal.getOrganizationId(), principal.getUserId(),
+                    action.getDescription());
         }
 
         return ActionSummary.from(action);

@@ -16,6 +16,7 @@ public class AppUserPrincipal implements UserDetails {
     private final String email;
     private final String passwordHash;
     private final Role role;
+    private final boolean companySecretaryAccess;
     private final boolean enabled;
 
     public AppUserPrincipal(User user) {
@@ -24,7 +25,13 @@ public class AppUserPrincipal implements UserDetails {
         this.email = user.getEmail();
         this.passwordHash = user.getPasswordHash();
         this.role = user.getRole();
+        this.companySecretaryAccess = user.actsAs(Role.COMPANY_SECRETARY) && role != Role.COMPANY_SECRETARY;
         this.enabled = user.getStatus() == UserStatus.ACTIVE;
+    }
+
+    /** True if this user holds {@code role}, directly or through Company Secretary access. */
+    public boolean actsAs(Role candidate) {
+        return role == candidate || (candidate == Role.COMPANY_SECRETARY && companySecretaryAccess);
     }
 
     public UUID getUserId() {
@@ -41,6 +48,10 @@ public class AppUserPrincipal implements UserDetails {
 
     @Override
     public List<GrantedAuthority> getAuthorities() {
+        if (companySecretaryAccess) {
+            return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()),
+                    new SimpleGrantedAuthority("ROLE_" + Role.COMPANY_SECRETARY.name()));
+        }
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 

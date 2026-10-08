@@ -2,21 +2,33 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { extractErrorMessage } from "../api/client";
 import { listDirectors } from "../api/directors";
-import { addRespondent, closeEvaluation, getEvaluation, launchEvaluation } from "../api/evaluations";
+import {
+  addRespondent,
+  closeEvaluation,
+  getEvaluation,
+  launchEvaluation,
+  sendEvaluationReminders,
+} from "../api/evaluations";
 import type { ConfidentialityMode, DirectorSummary, EvaluationDetail } from "../api/types";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
+import { canManageEvaluations } from "../constants/roles";
+import { useAuth } from "../context/AuthContext";
 
 const CONFIDENTIALITY_MODES: ConfidentialityMode[] = ["IDENTIFIED", "CONFIDENTIAL", "ANONYMOUS"];
 
 export function EvaluationSetupPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const canManage = canManageEvaluations(user);
   const navigate = useNavigate();
   const [detail, setDetail] = useState<EvaluationDetail | null>(null);
   const [directors, setDirectors] = useState<DirectorSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [reminding, setReminding] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [respondentDirectorId, setRespondentDirectorId] = useState("");
   const [confidentialityMode, setConfidentialityMode] = useState<ConfidentialityMode>("CONFIDENTIAL");
@@ -35,6 +47,7 @@ export function EvaluationSetupPage() {
 
   const respondentDirectorIds = new Set(detail?.respondents.map((r) => r.directorId));
   const eligibleDirectors = directors.filter((d) => !respondentDirectorIds.has(d.id));
+  const outstandingCount = detail?.respondents.filter((r) => r.status !== "SUBMITTED").length ?? 0;
 
   async function handleAddRespondent(event: FormEvent) {
     event.preventDefault();
@@ -63,6 +76,29 @@ export function EvaluationSetupPage() {
     }
   }
 
+  async function handleSendReminders() {
+    if (!id) return;
+    setError(null);
+    setNotice(null);
+    setReminding(true);
+    try {
+      const { remindersSent, withoutPortalAccess } = await sendEvaluationReminders(id);
+      const sent =
+        remindersSent === 0
+          ? "No reminders were sent."
+          : `Reminder sent to ${remindersSent} respondent${remindersSent === 1 ? "" : "s"}.`;
+      const skipped =
+        withoutPortalAccess === 0
+          ? ""
+          : ` ${withoutPortalAccess} outstanding respondent${withoutPortalAccess === 1 ? " hasn't" : "s haven't"} been invited to the portal yet, so couldn't be reminded.`;
+      setNotice(sent + skipped);
+    } catch (err) {
+      setError(extractErrorMessage(err));
+    } finally {
+      setReminding(false);
+    }
+  }
+
   async function handleClose() {
     if (!id) return;
     setError(null);
@@ -88,6 +124,7 @@ export function EvaluationSetupPage() {
         </div>
 
         {error && <p className="form-error">{error}</p>}
+        {notice && <p className="session-notice">{notice}</p>}
         {loading && <p>Loading...</p>}
 
         {detail && (
@@ -112,7 +149,7 @@ export function EvaluationSetupPage() {
                 {detail.respondents.length === 0 && <li>No respondents yet.</li>}
               </ul>
 
-              {detail.evaluation.status === "DRAFT" && (
+              {canManage && detail.evaluation.status === "DRAFT" && (
                 <form className="add-form" onSubmit={handleAddRespondent}>
                   <label>
                     Director
@@ -146,15 +183,24 @@ export function EvaluationSetupPage() {
                 </form>
               )}
 
-              {detail.evaluation.status === "DRAFT" && (
+              {canManage && detail.evaluation.status === "DRAFT" && (
                 <button type="button" onClick={handleLaunch} disabled={busy || detail.respondents.length === 0}>
                   {busy ? "Launching..." : "Launch evaluation"}
                 </button>
               )}
-              {detail.evaluation.status === "LAUNCHED" && (
-                <button type="button" onClick={handleClose} disabled={busy}>
-                  {busy ? "Closing..." : "Close evaluation"}
-                </button>
+              {canManage && detail.evaluation.status === "LAUNCHED" && (
+                <div className="button-row">
+                  {outstandingCount > 0 && (
+                    <button type="button" className="secondary" onClick={handleSendReminders} disabled={reminding}>
+                      {reminding
+                        ? "Sending..."
+                        : `Send reminder to ${outstandingCount} outstanding respondent${outstandingCount === 1 ? "" : "s"}`}
+                    </button>
+                  )}
+                  <button type="button" onClick={handleClose} disabled={busy}>
+                    {busy ? "Closing..." : "Close evaluation"}
+                  </button>
+                </div>
               )}
               {(detail.evaluation.status === "CLOSED" || detail.evaluation.status === "SCORED") && (
                 <Link to={`/evaluations/${id}/results`}>

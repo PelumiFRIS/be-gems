@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { ROLE_LABELS } from "../constants/roles";
+import { roleLabel } from "../constants/roles";
 import { useAuth } from "../context/AuthContext";
 import { LogoutIcon } from "./icons";
+import { NotificationBell } from "./NotificationBell";
 import { initials } from "../utils/initials";
 
 export function TopBar() {
@@ -23,12 +24,15 @@ export function TopBar() {
           <div className="topbar-name">
             {user.firstName} {user.lastName}
           </div>
-          <div className="topbar-role">{ROLE_LABELS[user.role]}</div>
+          <div className="topbar-role">{roleLabel(user)}</div>
         </div>
       </div>
-      <button type="button" className="secondary small" onClick={handleSignOut}>
-        <LogoutIcon width={15} height={15} /> Sign out
-      </button>
+      <div className="topbar-actions">
+        <NotificationBell />
+        <button type="button" className="secondary small" onClick={handleSignOut}>
+          <LogoutIcon width={15} height={15} /> Sign out
+        </button>
+      </div>
     </div>
   );
 }

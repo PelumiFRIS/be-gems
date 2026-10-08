@@ -5,6 +5,7 @@ import com.fris.begems.user.dto.ChangePasswordRequest;
 import com.fris.begems.user.dto.CreateUserRequest;
 import com.fris.begems.user.dto.CreatedUserResponse;
 import com.fris.begems.user.dto.TemporaryPasswordResponse;
+import com.fris.begems.user.dto.UpdateCompanySecretaryAccessRequest;
 import com.fris.begems.user.dto.UpdateUserRoleRequest;
 import com.fris.begems.user.dto.UpdateUserStatusRequest;
 import com.fris.begems.user.dto.UserSummary;
@@ -70,6 +71,13 @@ public class UserController {
     public UserSummary changeStatus(@AuthenticationPrincipal AppUserPrincipal principal, @PathVariable UUID id,
             @Valid @RequestBody UpdateUserStatusRequest request) {
         return userService.changeStatus(principal, id, request.status());
+    }
+
+    @PutMapping("/{id}/company-secretary-access")
+    @PreAuthorize("hasRole('ORG_ADMIN')")
+    public UserSummary changeCompanySecretaryAccess(@AuthenticationPrincipal AppUserPrincipal principal,
+            @PathVariable UUID id, @Valid @RequestBody UpdateCompanySecretaryAccessRequest request) {
+        return userService.changeCompanySecretaryAccess(principal, id, request.enabled());
     }
 
     @PostMapping("/{id}/reset-password")

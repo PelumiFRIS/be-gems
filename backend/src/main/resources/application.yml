@@ -34,6 +34,14 @@ jwt:
 app:
   allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5175}
   frontend-url: ${FRONTEND_URL:http://localhost:5175}
+  mail:
+    # log | brevo | smtp. Render's free tier blocks outbound SMTP, so production uses Brevo's HTTP API.
+    provider: ${MAIL_PROVIDER:log}
+    brevo-api-key: ${BREVO_API_KEY:}
+    from-address: ${MAIL_FROM_ADDRESS:}
+    from-name: ${MAIL_FROM_NAME:BE-GEMS}
+  notifications:
+    overdue-digest-cron: ${OVERDUE_DIGEST_CRON:0 0 8 * * MON-FRI}
 
 server:
   port: ${PORT:8081}

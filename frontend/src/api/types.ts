@@ -10,6 +10,7 @@ export interface UserSummary {
   status: UserStatus;
   organizationId: string;
   organizationName: string;
+  companySecretaryAccess: boolean;
 }
 
 export interface CreateUserPayload {
@@ -370,4 +371,27 @@ export interface AttachmentSummary {
   fileSize: number;
   uploadedByName: string | null;
   createdAt: string;
+}
+
+export type NotificationType =
+  | "EVALUATION_INVITATION"
+  | "EVALUATION_REMINDER"
+  | "SUBMISSION_CONFIRMED"
+  | "ALL_RESPONSES_SUBMITTED"
+  | "ACTION_CLOSED"
+  | "ACTIONS_OVERDUE";
+
+export interface NotificationSummary {
+  id: string;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  link: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface ReminderResult {
+  remindersSent: number;
+  withoutPortalAccess: number;
 }

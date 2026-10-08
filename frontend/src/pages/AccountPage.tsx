@@ -4,7 +4,7 @@ import { changeOwnPassword } from "../api/users";
 import { PasswordInput } from "../components/PasswordInput";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
-import { ROLE_LABELS } from "../constants/roles";
+import { roleLabel } from "../constants/roles";
 import { useAuth } from "../context/AuthContext";
 
 export function AccountPage() {
@@ -64,7 +64,7 @@ export function AccountPage() {
               </div>
               <div className="detail-field">
                 <dt>Role</dt>
-                <dd>{ROLE_LABELS[user.role]}</dd>
+                <dd>{roleLabel(user)}</dd>
               </div>
               <div className="detail-field">
                 <dt>Organisation</dt>

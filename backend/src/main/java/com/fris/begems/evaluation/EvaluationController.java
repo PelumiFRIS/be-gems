@@ -4,6 +4,7 @@ import com.fris.begems.evaluation.dto.AddRespondentRequest;
 import com.fris.begems.evaluation.dto.CreateEvaluationRequest;
 import com.fris.begems.evaluation.dto.EvaluationDetail;
 import com.fris.begems.evaluation.dto.EvaluationSummary;
+import com.fris.begems.evaluation.dto.ReminderResult;
 import com.fris.begems.security.AppUserPrincipal;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -65,5 +66,11 @@ public class EvaluationController {
     @PreAuthorize("hasAnyRole('COMPANY_SECRETARY', 'EVALUATOR')")
     public EvaluationSummary close(@AuthenticationPrincipal AppUserPrincipal principal, @PathVariable UUID id) {
         return evaluationService.close(principal, id);
+    }
+
+    @PostMapping("/{id}/reminders")
+    @PreAuthorize("hasAnyRole('COMPANY_SECRETARY', 'EVALUATOR')")
+    public ReminderResult sendReminders(@AuthenticationPrincipal AppUserPrincipal principal, @PathVariable UUID id) {
+        return evaluationService.sendReminders(principal, id);
     }
 }

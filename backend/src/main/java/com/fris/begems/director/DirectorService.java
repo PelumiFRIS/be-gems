@@ -15,6 +15,7 @@ import com.fris.begems.director.dto.InviteDirectorResponse;
 import com.fris.begems.director.dto.UpdateDirectorRequest;
 import com.fris.begems.evaluation.EvaluationRepository;
 import com.fris.begems.evaluation.EvaluationRespondentRepository;
+import com.fris.begems.notification.NotificationService;
 import com.fris.begems.security.AppUserPrincipal;
 import com.fris.begems.security.TemporaryPasswordGenerator;
 import com.fris.begems.user.Role;
@@ -50,12 +51,15 @@ public class DirectorService {
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
     private final TemporaryPasswordGenerator temporaryPasswordGenerator;
+    private final NotificationService notificationService;
 
     public DirectorService(DirectorRepository directorRepository, DirectorCvRepository directorCvRepository,
             BoardRepository boardRepository, UserRepository userRepository, CommitteeService committeeService,
             CommitteeMemberRepository committeeMemberRepository, EvaluationRepository evaluationRepository,
             EvaluationRespondentRepository evaluationRespondentRepository, PasswordEncoder passwordEncoder,
-            AuditLogService auditLogService, TemporaryPasswordGenerator temporaryPasswordGenerator) {
+            AuditLogService auditLogService, TemporaryPasswordGenerator temporaryPasswordGenerator,
+            NotificationService notificationService) {
+        this.notificationService = notificationService;
         this.directorRepository = directorRepository;
         this.directorCvRepository = directorCvRepository;
         this.boardRepository = boardRepository;
@@ -223,6 +227,7 @@ public class DirectorService {
 
         auditLogService.record(principal, AuditAction.DIRECTOR_INVITED, AuditEntityType.DIRECTOR, director.getId(),
                 "Invited \"" + director.getName() + "\" to the portal");
+        notificationService.sendAccountCreated(user);
 
         return new InviteDirectorResponse(director.getEmail(), temporaryPassword);
     }

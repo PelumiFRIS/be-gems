@@ -4,6 +4,7 @@ import com.fris.begems.audit.AuditAction;
 import com.fris.begems.audit.AuditEntityType;
 import com.fris.begems.audit.AuditLogService;
 import com.fris.begems.common.ApiException;
+import com.fris.begems.notification.NotificationService;
 import com.fris.begems.organization.Organization;
 import com.fris.begems.organization.OrganizationRepository;
 import com.fris.begems.security.AppUserPrincipal;
@@ -38,15 +39,17 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
     private final TemporaryPasswordGenerator temporaryPasswordGenerator;
+    private final NotificationService notificationService;
 
     public UserService(UserRepository userRepository, OrganizationRepository organizationRepository,
             PasswordEncoder passwordEncoder, AuditLogService auditLogService,
-            TemporaryPasswordGenerator temporaryPasswordGenerator) {
+            TemporaryPasswordGenerator temporaryPasswordGenerator, NotificationService notificationService) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogService = auditLogService;
         this.temporaryPasswordGenerator = temporaryPasswordGenerator;
+        this.notificationService = notificationService;
     }
 
     public UserSummary getCurrentUser(AppUserPrincipal principal) {
@@ -77,6 +80,7 @@ public class UserService {
         userRepository.save(user);
         auditLogService.record(principal, AuditAction.USER_CREATED, AuditEntityType.USER, user.getId(),
                 "Created user \"" + fullName(user) + "\" (" + user.getRole() + ")");
+        notificationService.sendAccountCreated(user);
         return new CreatedUserResponse(toSummary(user), temporaryPassword);
     }
 
@@ -89,6 +93,9 @@ public class UserService {
         requireAssignable(role);
         if (user.getRole() != role) {
             user.setRole(role);
+            if (role != Role.ORG_ADMIN) {
+                user.setCompanySecretaryAccess(false);
+            }
             touch(user);
             auditLogService.record(principal, AuditAction.USER_ROLE_CHANGED, AuditEntityType.USER, user.getId(),
                     "Changed \"" + fullName(user) + "\" to " + role);
@@ -109,6 +116,31 @@ public class UserService {
         return toSummary(user);
     }
 
+    /**
+     * Lets an Organisation Administrator also act as Company Secretary on the same
+     * login. Self-service is allowed: an admin could otherwise just create a second
+     * Company Secretary account, so this grants nothing they couldn't already get.
+     */
+    @Transactional
+    public UserSummary changeCompanySecretaryAccess(AppUserPrincipal principal, UUID userId, boolean enabled) {
+        User user = userRepository.findByIdAndOrganizationId(userId, principal.getOrganizationId())
+                .orElseThrow(() -> ApiException.notFound("User not found"));
+        if (user.getRole() != Role.ORG_ADMIN) {
+            throw ApiException.badRequest(
+                    "Company Secretary access applies to Organisation Administrators; change this user's role instead");
+        }
+        if (user.isCompanySecretaryAccess() != enabled) {
+            user.setCompanySecretaryAccess(enabled);
+            touch(user);
+            auditLogService.record(principal,
+                    enabled ? AuditAction.COMPANY_SECRETARY_ACCESS_GRANTED : AuditAction.COMPANY_SECRETARY_ACCESS_REVOKED,
+                    AuditEntityType.USER, user.getId(),
+                    (enabled ? "Gave \"" : "Removed Company Secretary access from \"") + fullName(user)
+                            + (enabled ? "\" Company Secretary access" : "\""));
+        }
+        return toSummary(user);
+    }
+
     @Transactional
     public TemporaryPasswordResponse resetPassword(AppUserPrincipal principal, UUID userId) {
         User user = requireOtherUserInOrganization(principal, userId,
@@ -118,6 +150,7 @@ public class UserService {
         touch(user);
         auditLogService.record(principal, AuditAction.PASSWORD_RESET, AuditEntityType.USER, user.getId(),
                 "Reset the password for \"" + fullName(user) + "\"");
+        notificationService.sendPasswordReset(user);
         return new TemporaryPasswordResponse(user.getEmail(), temporaryPassword);
     }
 

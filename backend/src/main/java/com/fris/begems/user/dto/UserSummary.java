@@ -13,7 +13,8 @@ public record UserSummary(
         Role role,
         UserStatus status,
         UUID organizationId,
-        String organizationName) {
+        String organizationName,
+        boolean companySecretaryAccess) {
 
     public static UserSummary from(User user, String organizationName) {
         return new UserSummary(
@@ -24,6 +25,7 @@ public record UserSummary(
                 user.getRole(),
                 user.getStatus(),
                 user.getOrganizationId(),
-                organizationName);
+                organizationName,
+                user.getRole() == Role.ORG_ADMIN && user.isCompanySecretaryAccess());
     }
 }

@@ -47,6 +47,10 @@ public class User {
     @Column(nullable = false)
     private UserStatus status;
 
+    /** Only meaningful for ORG_ADMIN: also grants every Company Secretary permission. */
+    @Column(name = "company_secretary_access", nullable = false)
+    private boolean companySecretaryAccess;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -68,5 +72,11 @@ public class User {
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
         return user;
+    }
+
+    /** True if this user holds {@code role}, directly or through Company Secretary access. */
+    public boolean actsAs(Role role) {
+        return this.role == role
+                || (role == Role.COMPANY_SECRETARY && this.role == Role.ORG_ADMIN && companySecretaryAccess);
     }
 }

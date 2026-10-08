@@ -11,11 +11,14 @@ import com.fris.begems.evaluation.dto.AddRespondentRequest;
 import com.fris.begems.evaluation.dto.CreateEvaluationRequest;
 import com.fris.begems.evaluation.dto.EvaluationDetail;
 import com.fris.begems.evaluation.dto.EvaluationSummary;
+import com.fris.begems.evaluation.dto.ReminderResult;
 import com.fris.begems.evaluation.dto.RespondentSummary;
 import com.fris.begems.framework.EvaluationType;
 import com.fris.begems.framework.Framework;
 import com.fris.begems.framework.FrameworkRepository;
+import com.fris.begems.notification.NotificationService;
 import com.fris.begems.security.AppUserPrincipal;
+import com.fris.begems.user.User;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -38,17 +41,19 @@ public class EvaluationService {
     private final DirectorRepository directorRepository;
     private final FrameworkRepository frameworkRepository;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public EvaluationService(EvaluationRepository evaluationRepository,
             EvaluationRespondentRepository respondentRepository, BoardRepository boardRepository,
             DirectorRepository directorRepository, FrameworkRepository frameworkRepository,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService, NotificationService notificationService) {
         this.evaluationRepository = evaluationRepository;
         this.respondentRepository = respondentRepository;
         this.boardRepository = boardRepository;
         this.directorRepository = directorRepository;
         this.frameworkRepository = frameworkRepository;
         this.auditLogService = auditLogService;
+        this.notificationService = notificationService;
     }
 
     public List<EvaluationSummary> listForBoard(AppUserPrincipal principal, UUID boardId) {
@@ -148,7 +153,33 @@ public class EvaluationService {
         auditLogService.record(principal, AuditAction.EVALUATION_LAUNCHED, AuditEntityType.EVALUATION,
                 evaluation.getId(), "Launched the evaluation to " + respondents.size() + " respondent(s)");
 
-        return EvaluationSummary.from(evaluation, subjectDirectorName(evaluation));
+        String subjectName = subjectDirectorName(evaluation);
+        notificationService.notifyEvaluationLaunched(evaluation, subjectName,
+                notificationService.respondentUsers(respondents));
+
+        return EvaluationSummary.from(evaluation, subjectName);
+    }
+
+    /** Reminds every respondent who hasn't submitted yet; returns how many could be reached. */
+    @Transactional
+    public ReminderResult sendReminders(AppUserPrincipal principal, UUID evaluationId) {
+        Evaluation evaluation = requireEvaluationInOrganization(principal, evaluationId);
+        if (evaluation.getStatus() != EvaluationStatus.LAUNCHED) {
+            throw ApiException.conflict("Reminders can only be sent while the evaluation is open");
+        }
+        List<EvaluationRespondent> outstanding = respondentRepository.findByEvaluationId(evaluationId).stream()
+                .filter(r -> r.getStatus() != RespondentStatus.SUBMITTED)
+                .toList();
+        if (outstanding.isEmpty()) {
+            throw ApiException.conflict("Every respondent has already submitted");
+        }
+        List<User> recipients = notificationService.respondentUsers(outstanding);
+        notificationService.notifyEvaluationReminder(evaluation, subjectDirectorName(evaluation), recipients);
+
+        auditLogService.record(principal, AuditAction.EVALUATION_REMINDER_SENT, AuditEntityType.EVALUATION,
+                evaluation.getId(), "Sent a reminder to " + recipients.size() + " respondent(s)");
+
+        return new ReminderResult(recipients.size(), outstanding.size() - recipients.size());
     }
 
     @Transactional

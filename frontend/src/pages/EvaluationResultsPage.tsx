@@ -9,6 +9,7 @@ import type { EvaluationDetail, FindingSeverity, FindingSummary, ScoreRowSummary
 import { Badge } from "../components/Badge";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
+import { canManageEvaluations } from "../constants/roles";
 import { useAuth } from "../context/AuthContext";
 
 export function EvaluationResultsPage() {
@@ -110,7 +111,7 @@ export function EvaluationResultsPage() {
   const isIndividual = detail?.evaluation.evaluationType === "DIRECTOR_PEER";
   const canOpenReport =
     scores.length > 0 &&
-    (user?.role === "COMPANY_SECRETARY" || user?.role === "EVALUATOR" || (user?.role === "ORG_ADMIN" && !isIndividual));
+    (canManageEvaluations(user) || (user?.role === "ORG_ADMIN" && !isIndividual));
 
   return (
     <div className="app-shell">

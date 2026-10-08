@@ -124,7 +124,7 @@ public class ReportService {
                 .findByIdAndOrganizationId(evaluationId, principal.getOrganizationId())
                 .orElseThrow(() -> ApiException.notFound("Evaluation not found"));
         boolean individual = evaluation.getEvaluationType() == EvaluationType.DIRECTOR_PEER;
-        if (individual && principal.getRole() == Role.ORG_ADMIN) {
+        if (individual && !principal.actsAs(Role.COMPANY_SECRETARY) && !principal.actsAs(Role.EVALUATOR)) {
             throw ApiException.forbidden(
                     "Individual director reports are restricted to the Company Secretary and Evaluators");
         }

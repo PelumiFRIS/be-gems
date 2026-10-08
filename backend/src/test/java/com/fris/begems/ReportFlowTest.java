@@ -158,7 +158,10 @@ class ReportFlowTest extends IntegrationTestSupport {
                 "Peer comment on: Any board-level gaps to address");
         assertThat(html).doesNotContain("Femi Peer").doesNotContain("Chidi Chairman");
 
+        setCompanySecretaryAccess(admin.accessToken(), admin.user().id(), false);
         assertThat(report(admin.accessToken(), evaluationId).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        setCompanySecretaryAccess(admin.accessToken(), admin.user().id(), true);
+        assertThat(report(admin.accessToken(), evaluationId).getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(report(subjectLogin.accessToken(), evaluationId).getStatusCode())
                 .isEqualTo(HttpStatus.FORBIDDEN);
     }

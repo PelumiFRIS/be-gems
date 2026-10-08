@@ -274,6 +274,19 @@ describe("EvaluationResultsPage", () => {
     expect(screen.queryByRole("button", { name: /report/i })).not.toBeInTheDocument();
   });
 
+  it("offers the confidential director report to an Organisation Administrator with Company Secretary access", async () => {
+    mockedUseAuth.mockReturnValue({
+      user: { ...user, role: "ORG_ADMIN", companySecretaryAccess: true },
+      loading: false,
+    } as unknown as ReturnType<typeof useAuth>);
+    mockedGetEvaluation.mockResolvedValue(peerEvaluationDetail());
+    mockedGetScores.mockResolvedValue(peerScores);
+
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Open confidential director report" })).toBeInTheDocument();
+  });
+
   it("offers the confidential director report to a Company Secretary", async () => {
     mockedGetEvaluation.mockResolvedValue(peerEvaluationDetail());
     mockedGetScores.mockResolvedValue(peerScores);

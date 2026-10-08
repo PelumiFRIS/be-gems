@@ -28,6 +28,11 @@ export async function changeUserStatus(userId: string, status: UserStatus): Prom
   return data;
 }
 
+export async function changeCompanySecretaryAccess(userId: string, enabled: boolean): Promise<UserSummary> {
+  const { data } = await apiClient.put<UserSummary>(`/api/users/${userId}/company-secretary-access`, { enabled });
+  return data;
+}
+
 export async function resetUserPassword(userId: string): Promise<TemporaryPasswordResponse> {
   const { data } = await apiClient.post<TemporaryPasswordResponse>(`/api/users/${userId}/reset-password`);
   return data;

@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { extractErrorMessage } from "../api/client";
 import type { Role, UserSummary } from "../api/types";
-import { changeUserRole, changeUserStatus, createUser, listUsers, resetUserPassword } from "../api/users";
+import {
+  changeCompanySecretaryAccess,
+  changeUserRole,
+  changeUserStatus,
+  createUser,
+  listUsers,
+  resetUserPassword,
+} from "../api/users";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
 import { ROLE_LABELS } from "../constants/roles";
@@ -16,7 +23,7 @@ interface RevealedPassword {
 }
 
 export function UsersPage() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, refreshUser } = useAuth();
   const isAdmin = currentUser?.role === "ORG_ADMIN";
 
   const [users, setUsers] = useState<UserSummary[]>([]);
@@ -94,6 +101,13 @@ export function UsersPage() {
     runForUser(target, async () => replaceUser(await changeUserRole(target.id, newRole)));
   }
 
+  function handleCompanySecretaryAccess(target: UserSummary, enabled: boolean) {
+    runForUser(target, async () => {
+      replaceUser(await changeCompanySecretaryAccess(target.id, enabled));
+      if (target.id === currentUser?.id) await refreshUser();
+    });
+  }
+
   function handleToggleStatus(target: UserSummary) {
     const next = target.status === "ACTIVE" ? "DISABLED" : "ACTIVE";
     runForUser(target, async () => replaceUser(await changeUserStatus(target.id, next)));
@@ -117,7 +131,10 @@ export function UsersPage() {
         <TopBar />
         <div className="page-header">
           <h1>Users</h1>
-          <p>Staff accounts for your organisation. Directors get their logins from Board Setup.</p>
+          <p>
+            Staff accounts for your organisation. Directors get their logins from Board Setup. Tick &ldquo;Also Company
+            Secretary&rdquo; for an administrator who also creates and runs evaluations.
+          </p>
         </div>
 
         {!isAdmin && <p className="form-error">Only an Organisation Administrator can manage users.</p>}
@@ -171,7 +188,7 @@ export function UsersPage() {
                         <td>{u.email}</td>
                         <td>
                           {isSelf || u.role === "DIRECTOR" || u.role === "SUPER_ADMIN" ? (
-                            ROLE_LABELS[u.role]
+                            <div>{ROLE_LABELS[u.role]}</div>
                           ) : (
                             <select
                               aria-label={`Role for ${u.firstName} ${u.lastName}`}
@@ -185,6 +202,17 @@ export function UsersPage() {
                                 </option>
                               ))}
                             </select>
+                          )}
+                          {u.role === "ORG_ADMIN" && (
+                            <label className="checkbox-label">
+                              <input
+                                type="checkbox"
+                                checked={u.companySecretaryAccess}
+                                disabled={busyUserId !== null}
+                                onChange={(e) => handleCompanySecretaryAccess(u, e.target.checked)}
+                              />
+                              Also Company Secretary
+                            </label>
                           )}
                         </td>
                         <td>

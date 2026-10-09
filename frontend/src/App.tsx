@@ -15,6 +15,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { MyEvaluationsPage } from "./pages/MyEvaluationsPage";
 import { RespondentQuestionnairePage } from "./pages/RespondentQuestionnairePage";
 import { SignupPage } from "./pages/SignupPage";
+import { SkillsMatrixPage } from "./pages/SkillsMatrixPage";
 import { UsersPage } from "./pages/UsersPage";
 
 function App() {
@@ -100,6 +101,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ActionRegisterPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/skills-matrix"
+          element={
+            <ProtectedRoute>
+              <SkillsMatrixPage />
             </ProtectedRoute>
           }
         />

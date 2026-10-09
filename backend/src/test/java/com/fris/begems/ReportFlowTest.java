@@ -22,6 +22,8 @@ import com.fris.begems.recommendation.RecommendationPriority;
 import com.fris.begems.recommendation.RecommendationStatus;
 import com.fris.begems.recommendation.dto.CreateRecommendationRequest;
 import com.fris.begems.response.dto.SaveResponseRequest;
+import com.fris.begems.skill.dto.SkillRatingRequest;
+import com.fris.begems.skill.dto.SkillsMatrix;
 import com.fris.begems.support.IntegrationTestSupport;
 import java.time.LocalDate;
 import java.util.List;
@@ -79,6 +81,11 @@ class ReportFlowTest extends IntegrationTestSupport {
                         "Company Secretary", "Chairman", LocalDate.now().minusDays(1), null)),
                 String.class);
 
+        // Strategy (High): one Advanced director. Audit (High): nobody Advanced.
+        rateSkill(cs.accessToken(), board.id(), "Strategy", chairman.id(), 5);
+        rateSkill(cs.accessToken(), board.id(), "Strategy", member.id(), 3);
+        rateSkill(cs.accessToken(), board.id(), "Audit", member.id(), 2);
+
         ResponseEntity<String> response = report(cs.accessToken(), evaluationId);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getContentType().toString()).contains("text/html");
@@ -98,6 +105,11 @@ class ReportFlowTest extends IntegrationTestSupport {
         assertThat(html).contains("Chidi Chairman", "Circulate packs 7 days ahead", "Not started (overdue)");
         assertThat(html).contains("&lt;script&gt;alert(&#39;x&#39;)&lt;/script&gt; &amp; late board packs");
         assertThat(html).doesNotContain("<script>alert");
+        assertThat(html).contains("Board Skills Matrix", "Of the 2 competencies assessed: "
+                + "1 single-person dependency and 1 critical gap. 16 competencies have not yet been rated.",
+                "Critical gaps (High requirement, no director rated Advanced or above): Audit.",
+                "Single-person dependencies (High requirement, only one director rated Advanced or above): "
+                        + "Strategy.");
 
         assertThat(report(admin.accessToken(), evaluationId).getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(report(memberLogin.accessToken(), evaluationId).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
@@ -140,11 +152,14 @@ class ReportFlowTest extends IntegrationTestSupport {
         submit(chairmanLogin, evaluationId);
         submit(peerLogin, evaluationId);
         closeAndScore(cs, evaluationId);
+        rateSkill(cs.accessToken(), board.id(), "Finance", subject.id(), 4);
+        rateSkill(cs.accessToken(), board.id(), "Finance", peer.id(), 1);
 
         ResponseEntity<String> response = report(cs.accessToken(), evaluationId);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         String html = response.getBody();
         assertThat(html).contains("Individual Director Evaluation Report", "Sade Subject");
+        assertThat(html).contains("Board skills matrix ratings", "4 – Advanced").doesNotContain("1 – Basic");
         for (String section : List.of("Self-assessment", "Peer Assessment", "Chairman Assessment",
                 "Competency Assessment", "Attendance", "Contribution", "Strengths", "Development Areas",
                 "Training Recommendations")) {
@@ -235,5 +250,15 @@ class ReportFlowTest extends IntegrationTestSupport {
     private ResponseEntity<String> report(String token, UUID evaluationId) {
         return restTemplate.exchange("/api/evaluations/" + evaluationId + "/report", HttpMethod.GET,
                 authedRequest(token), String.class);
+    }
+
+    private void rateSkill(String token, UUID boardId, String skillName, UUID directorId, int rating) {
+        SkillsMatrix matrix = restTemplate.exchange("/api/boards/" + boardId + "/skills-matrix", HttpMethod.GET,
+                authedRequest(token), SkillsMatrix.class).getBody();
+        UUID skillId = matrix.skills().stream().filter(s -> s.name().equals(skillName)).findFirst().orElseThrow()
+                .id();
+        ResponseEntity<String> rated = restTemplate.exchange("/api/skills/" + skillId + "/ratings/" + directorId,
+                HttpMethod.PUT, authedRequest(token, new SkillRatingRequest(rating)), String.class);
+        assertThat(rated.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 }

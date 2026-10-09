@@ -28,6 +28,8 @@ import com.fris.begems.scoring.BgeiBand;
 import com.fris.begems.scoring.EvaluationScore;
 import com.fris.begems.scoring.MaturityLevel;
 import com.fris.begems.scoring.ScoreScopeType;
+import com.fris.begems.skill.SkillCoverage;
+import com.fris.begems.skill.dto.SkillRow;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -37,6 +39,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -276,6 +279,76 @@ class BoardReportWriter {
                 .toList();
         html.table(List.of(Column.text("Director"), Column.text("Classification"), Column.text("Appointed"),
                 Column.text("Term expires"), Column.text("Committees")), rows);
+        skillsMatrix(html, ctx);
+    }
+
+    /** Coverage is reported by competency only — individual directors' ratings are not named here. */
+    private void skillsMatrix(ReportHtmlBuilder html, ReportContext ctx) {
+        html.subheading("Board Skills Matrix");
+        List<SkillRow> skills = ctx.skills().skills();
+        List<SkillRow> assessed = skills.stream().filter(s -> s.coverage() != SkillCoverage.NOT_ASSESSED).toList();
+        if (assessed.isEmpty()) {
+            html.note("The Board skills matrix has not been completed, so no skills analysis is included.");
+            return;
+        }
+        Map<SkillCoverage, List<String>> byCoverage = assessed.stream()
+                .collect(Collectors.groupingBy(SkillRow::coverage, () -> new EnumMap<>(SkillCoverage.class),
+                        Collectors.mapping(SkillRow::name, Collectors.toList())));
+        List<String> parts = new ArrayList<>();
+        addCount(parts, byCoverage, SkillCoverage.COVERED, "adequately covered", "adequately covered");
+        addCount(parts, byCoverage, SkillCoverage.UNDERREPRESENTED, "underrepresented", "underrepresented");
+        addCount(parts, byCoverage, SkillCoverage.SINGLE_PERSON_DEPENDENCY, "single-person dependency",
+                "single-person dependencies");
+        addCount(parts, byCoverage, SkillCoverage.CRITICAL_GAP, "critical gap", "critical gaps");
+        html.paragraph("Each director was rated from 1 (Basic) to 5 (Expert) against the competencies the Board "
+                + "requires, and each competency carries a Board requirement of Low, Medium or High. Of the "
+                + plural(assessed.size(), "competency", "competencies") + " assessed: " + joinWithAnd(parts) + "."
+                + (assessed.size() < skills.size()
+                        ? " " + plural(skills.size() - assessed.size(), "competency has", "competencies have")
+                                + " not yet been rated."
+                        : ""));
+
+        List<String> concerns = new ArrayList<>();
+        concern(concerns, byCoverage, SkillCoverage.CRITICAL_GAP,
+                "Critical gaps (High requirement, no director rated Advanced or above): ");
+        concern(concerns, byCoverage, SkillCoverage.SINGLE_PERSON_DEPENDENCY,
+                "Single-person dependencies (High requirement, only one director rated Advanced or above): ");
+        concern(concerns, byCoverage, SkillCoverage.UNDERREPRESENTED, "Underrepresented: ");
+        List<String> future = skills.stream()
+                .filter(SkillRow::futureFocus)
+                .map(s -> s.name() + " (" + ReportFormat.skillCoverage(s.coverage()).toLowerCase(Locale.ROOT) + ")")
+                .toList();
+        if (!future.isEmpty()) {
+            concerns.add("Future skills requirements: " + joinWithAnd(future) + ".");
+        }
+        if (!concerns.isEmpty()) {
+            html.bullets(concerns);
+        }
+
+        html.table(List.of(Column.text("Competency"), Column.text("Board requirement"), Column.number("Average"),
+                Column.number("Directors rated 4+"), Column.text("Coverage")),
+                skills.stream()
+                        .map(s -> List.of(s.name() + (s.futureFocus() ? " (future)" : ""),
+                                ReportFormat.humanize(s.requiredLevel()),
+                                s.average() == null ? "—" : score(BigDecimal.valueOf(s.average())),
+                                String.valueOf(s.proficientCount()), ReportFormat.skillCoverage(s.coverage())))
+                        .toList());
+    }
+
+    private static void addCount(List<String> parts, Map<SkillCoverage, List<String>> byCoverage,
+            SkillCoverage coverage, String singular, String pluralForm) {
+        List<String> names = byCoverage.getOrDefault(coverage, List.of());
+        if (!names.isEmpty()) {
+            parts.add(plural(names.size(), singular, pluralForm));
+        }
+    }
+
+    private static void concern(List<String> concerns, Map<SkillCoverage, List<String>> byCoverage,
+            SkillCoverage coverage, String label) {
+        List<String> names = byCoverage.getOrDefault(coverage, List.of());
+        if (!names.isEmpty()) {
+            concerns.add(label + joinWithAnd(names) + ".");
+        }
     }
 
     private void effectivenessResults(ReportHtmlBuilder html, ReportContext ctx, Results results) {

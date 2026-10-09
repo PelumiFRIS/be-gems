@@ -395,3 +395,39 @@ export interface ReminderResult {
   remindersSent: number;
   withoutPortalAccess: number;
 }
+
+export type RequiredLevel = "LOW" | "MEDIUM" | "HIGH";
+
+export type SkillCoverage = "COVERED" | "UNDERREPRESENTED" | "SINGLE_PERSON_DEPENDENCY" | "CRITICAL_GAP" | "NOT_ASSESSED";
+
+export interface MatrixDirector {
+  id: string;
+  name: string;
+  classification: DirectorClassification;
+}
+
+export interface SkillRow {
+  id: string;
+  name: string;
+  requiredLevel: RequiredLevel;
+  futureFocus: boolean;
+  displayOrder: number;
+  ratings: Record<string, number>;
+  average: number | null;
+  proficientCount: number;
+  proficientDirectors: string[];
+  coverage: SkillCoverage;
+}
+
+export interface SkillsMatrix {
+  boardId: string;
+  directors: MatrixDirector[];
+  skills: SkillRow[];
+  coverageCounts: Partial<Record<SkillCoverage, number>>;
+}
+
+export interface SkillPayload {
+  name: string;
+  requiredLevel: RequiredLevel;
+  futureFocus: boolean;
+}

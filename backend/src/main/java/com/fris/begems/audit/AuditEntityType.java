@@ -8,5 +8,6 @@ public enum AuditEntityType {
     EVALUATION,
     FINDING,
     RECOMMENDATION,
-    ACTION
+    ACTION,
+    SKILL
 }

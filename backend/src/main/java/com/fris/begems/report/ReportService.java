@@ -40,6 +40,7 @@ import com.fris.begems.scoring.EvaluationScoreRepository;
 import com.fris.begems.scoring.MaturityLevelRepository;
 import com.fris.begems.scoring.ScoreScopeType;
 import com.fris.begems.security.AppUserPrincipal;
+import com.fris.begems.skill.SkillService;
 import com.fris.begems.user.Role;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -81,6 +82,7 @@ public class ReportService {
     private final BoardReportWriter boardReportWriter;
     private final DirectorReportWriter directorReportWriter;
     private final AuditLogService auditLogService;
+    private final SkillService skillService;
 
     public ReportService(EvaluationRepository evaluationRepository,
             EvaluationRespondentRepository respondentRepository, ResponseRepository responseRepository,
@@ -92,7 +94,8 @@ public class ReportService {
             CommitteeMemberRepository committeeMemberRepository, FindingRepository findingRepository,
             RecommendationRepository recommendationRepository,
             CorrectiveActionRepository correctiveActionRepository, BoardReportWriter boardReportWriter,
-            DirectorReportWriter directorReportWriter, AuditLogService auditLogService) {
+            DirectorReportWriter directorReportWriter, AuditLogService auditLogService, SkillService skillService) {
+        this.skillService = skillService;
         this.evaluationRepository = evaluationRepository;
         this.respondentRepository = respondentRepository;
         this.responseRepository = responseRepository;
@@ -209,6 +212,7 @@ public class ReportService {
                 recommendations,
                 actions,
                 evaluation.getEvaluationType() == EvaluationType.BOARD ? peerDirectorScores(evaluation) : List.of(),
+                skillService.matrixFor(board.getId()),
                 LocalDate.now());
     }
 

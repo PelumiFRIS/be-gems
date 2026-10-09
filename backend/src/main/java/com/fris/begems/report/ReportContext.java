@@ -19,6 +19,7 @@ import com.fris.begems.scoring.BgeiBand;
 import com.fris.begems.scoring.EvaluationScore;
 import com.fris.begems.scoring.MaturityLevel;
 import com.fris.begems.scoring.ScoreScopeType;
+import com.fris.begems.skill.dto.SkillsMatrix;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
@@ -51,6 +52,7 @@ record ReportContext(
         List<Recommendation> recommendations,
         List<CorrectiveAction> actions,
         List<BigDecimal> peerDirectorScores,
+        SkillsMatrix skills,
         LocalDate generatedOn) {
 
     Map<UUID, Director> directorsById() {

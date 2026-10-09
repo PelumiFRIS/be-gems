@@ -20,6 +20,7 @@ import com.fris.begems.report.ResponseStatistics.QuestionResult;
 import com.fris.begems.response.Response;
 import com.fris.begems.scoring.EvaluationScore;
 import com.fris.begems.scoring.ScoreScopeType;
+import com.fris.begems.skill.dto.SkillRow;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -74,7 +75,7 @@ class DirectorReportWriter {
         selfAssessment(html, ctx, groups, name);
         peerAssessment(html, ctx, groups);
         chairmanAssessment(html, ctx, groups, subject);
-        competencyAssessment(html, ctx, groups);
+        competencyAssessment(html, ctx, groups, subject);
         attendance(html, ctx);
         contribution(html, ctx, groups, name);
         strengths(html, ctx, groups);
@@ -197,7 +198,7 @@ class DirectorReportWriter {
         groupTable(html, ctx, groups.chairman());
     }
 
-    private void competencyAssessment(ReportHtmlBuilder html, ReportContext ctx, Groups groups) {
+    private void competencyAssessment(ReportHtmlBuilder html, ReportContext ctx, Groups groups, Director subject) {
         html.section("Competency Assessment");
         html.paragraph("Scores by governance competency, combining every response received.");
         List<List<String>> rows = new ArrayList<>();
@@ -220,6 +221,26 @@ class DirectorReportWriter {
                                     String.valueOf(r.responseCount()), score(r.average())))
                             .toList());
         }
+        if (subject != null) {
+            skillsMatrixRatings(html, ctx, subject);
+        }
+    }
+
+    private void skillsMatrixRatings(ReportHtmlBuilder html, ReportContext ctx, Director subject) {
+        List<SkillRow> rated = ctx.skills().skills().stream()
+                .filter(s -> s.ratings().containsKey(subject.getId()))
+                .toList();
+        if (rated.isEmpty()) {
+            return;
+        }
+        html.subheading("Board skills matrix ratings");
+        html.paragraph("Ratings recorded for this director in the Board skills matrix, from 1 (Basic) to "
+                + "5 (Expert), against the Board's requirement for each competency.");
+        html.table(List.of(Column.text("Competency"), Column.text("Rating"), Column.text("Board requirement")),
+                rated.stream()
+                        .map(s -> List.of(s.name(), ReportFormat.skillRating(s.ratings().get(subject.getId())),
+                                ReportFormat.humanize(s.requiredLevel())))
+                        .toList());
     }
 
     private void attendance(ReportHtmlBuilder html, ReportContext ctx) {

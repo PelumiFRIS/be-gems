@@ -1,6 +1,7 @@
 package com.fris.begems.report;
 
 import com.fris.begems.director.DirectorClassification;
+import com.fris.begems.skill.SkillCoverage;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -49,6 +50,26 @@ final class ReportFormat {
             case NON_EXECUTIVE_DIRECTOR -> "Non-Executive Director";
             case INDEPENDENT_NON_EXECUTIVE_DIRECTOR -> "Independent Non-Executive Director";
             case MD_CEO -> "MD/CEO";
+        };
+    }
+
+    static String skillRating(int rating) {
+        return rating + " – " + switch (rating) {
+            case 1 -> "Basic";
+            case 2 -> "Developing";
+            case 3 -> "Competent";
+            case 4 -> "Advanced";
+            default -> "Expert";
+        };
+    }
+
+    static String skillCoverage(SkillCoverage coverage) {
+        return switch (coverage) {
+            case COVERED -> "Adequately covered";
+            case UNDERREPRESENTED -> "Underrepresented";
+            case SINGLE_PERSON_DEPENDENCY -> "Single-person dependency";
+            case CRITICAL_GAP -> "Critical gap";
+            case NOT_ASSESSED -> "Not assessed";
         };
     }
 

@@ -1605,6 +1605,55 @@ button.link-button.danger-link {
   margin: 0;
 }
 
+/* Benchmarks */
+
+.data-table .numeric {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.inline-field {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.inline-edit-form .inline-field input:not([type="checkbox"]) {
+  min-width: 0;
+  width: 90px;
+}
+
+.inline-edit-form .inline-field-wide input:not([type="checkbox"]) {
+  width: 340px;
+}
+
+.variance-negative {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.variance-positive {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.data-table tr.below-benchmark td {
+  background: var(--danger-bg);
+}
+
+.badge-below_benchmark {
+  background: var(--danger);
+  color: #fff;
+}
+
+.badge-meets_benchmark {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
 @media (max-width: 768px) {
   .form-grid,
   .detail-grid {

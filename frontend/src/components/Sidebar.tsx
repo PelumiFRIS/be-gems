@@ -1,9 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { roleLabel } from "../constants/roles";
+import { isStaff, roleLabel } from "../constants/roles";
 import { useAuth } from "../context/AuthContext";
 import frisLogoWhite from "../assets/fris-logo-white.png";
 import {
   ActionsIcon,
+  BenchmarkIcon,
   BoardIcon,
   DashboardIcon,
   DirectorsIcon,
@@ -36,7 +37,7 @@ export function Sidebar() {
             <BoardIcon /> Board Setup
           </NavLink>
         </li>
-        {user && user.role !== "DIRECTOR" && user.role !== "SUPER_ADMIN" && (
+        {isStaff(user) && (
           <li>
             <NavLink to="/skills-matrix">
               <SkillsIcon /> Skills Matrix
@@ -58,6 +59,13 @@ export function Sidebar() {
             <ActionsIcon /> Action Register
           </NavLink>
         </li>
+        {isStaff(user) && (
+          <li>
+            <NavLink to="/benchmarks">
+              <BenchmarkIcon /> Benchmarks
+            </NavLink>
+          </li>
+        )}
         {user?.role === "ORG_ADMIN" && (
           <li>
             <NavLink to="/users">

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +8,7 @@ import { getEvaluation } from "../api/evaluations";
 import { createFinding, listFindings } from "../api/findings";
 import { openEvaluationReport } from "../api/reports";
 import { calculateScores, getScores } from "../api/scores";
+import { getBenchmarkComparison } from "../api/benchmarks";
 import { EvaluationResultsPage } from "./EvaluationResultsPage";
 
 vi.mock("../context/AuthContext", () => ({
@@ -31,6 +32,12 @@ vi.mock("../api/findings", () => ({
 vi.mock("../api/reports", () => ({
   openEvaluationReport: vi.fn(),
 }));
+
+vi.mock("../api/benchmarks", () => ({
+  getBenchmarkComparison: vi.fn(),
+}));
+
+const mockedGetBenchmarkComparison = vi.mocked(getBenchmarkComparison);
 
 const mockedUseAuth = vi.mocked(useAuth);
 const mockedGetEvaluation = vi.mocked(getEvaluation);
@@ -174,6 +181,59 @@ describe("EvaluationResultsPage", () => {
     vi.clearAllMocks();
     mockedUseAuth.mockReturnValue({ user, loading: false } as unknown as ReturnType<typeof useAuth>);
     mockedListFindings.mockResolvedValue([]);
+    mockedGetBenchmarkComparison.mockResolvedValue({ rows: [], belowCount: 0 });
+  });
+
+  it("flags areas with a negative variance against their benchmark", async () => {
+    mockedGetEvaluation.mockResolvedValue(boardEvaluationDetail("SCORED"));
+    mockedGetScores.mockResolvedValue(boardScores);
+    mockedGetBenchmarkComparison.mockResolvedValue({
+      rows: [
+        {
+          dimensionId: "dim-1",
+          measure: "Strategy",
+          actual: 4,
+          benchmark: 4.2,
+          variance: -0.2,
+          belowBenchmark: true,
+          source: "CBN Code 2023, s.5",
+          defaultBenchmark: false,
+        },
+        {
+          dimensionId: null,
+          measure: "BGEI",
+          actual: 80,
+          benchmark: 70,
+          variance: 10,
+          belowBenchmark: false,
+          source: "BE-GEMS default: the lower bound of the Effective band",
+          defaultBenchmark: true,
+        },
+      ],
+      belowCount: 1,
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("1 area falls below the benchmark.")).toBeInTheDocument();
+    const strategy = screen.getByText("Strategy").closest("tr")!;
+    expect(within(strategy).getByText("-0.20")).toHaveClass("variance-negative");
+    expect(within(strategy).getByText("Below benchmark")).toBeInTheDocument();
+    expect(within(strategy).getByText("CBN Code 2023, s.5")).toBeInTheDocument();
+    const bgei = screen.getByText("BGEI").closest("tr")!;
+    expect(within(bgei).getByText("+10.00%")).toBeInTheDocument();
+    expect(within(bgei).getByText("Meets benchmark")).toBeInTheDocument();
+    expect(mockedGetBenchmarkComparison).toHaveBeenCalledWith(EVAL_ID);
+  });
+
+  it("doesn't request a benchmark for a peer evaluation", async () => {
+    mockedGetEvaluation.mockResolvedValue(peerEvaluationDetail());
+    mockedGetScores.mockResolvedValue(peerScores);
+
+    renderPage();
+
+    expect(await screen.findByText("Overall Director Score")).toBeInTheDocument();
+    expect(mockedGetBenchmarkComparison).not.toHaveBeenCalled();
   });
 
   it("renders dimension scores, board overall and BGEI for a scored board evaluation", async () => {

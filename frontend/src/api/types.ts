@@ -426,6 +426,43 @@ export interface SkillsMatrix {
   coverageCounts: Partial<Record<SkillCoverage, number>>;
 }
 
+export interface BenchmarkTarget {
+  dimensionId: string | null;
+  name: string;
+  target: number;
+  source: string | null;
+  isDefault: boolean;
+}
+
+export interface BenchmarkSettings {
+  dimensions: BenchmarkTarget[];
+  bgei: BenchmarkTarget;
+  defaultDimensionTarget: number;
+  defaultBgeiTarget: number;
+}
+
+export interface BenchmarkPayload {
+  target: number;
+  source: string | null;
+}
+
+/** `dimensionId` is null for the BGEI row, whose values are percentages. */
+export interface BenchmarkComparisonRow {
+  dimensionId: string | null;
+  measure: string;
+  actual: number;
+  benchmark: number;
+  variance: number;
+  belowBenchmark: boolean;
+  source: string | null;
+  defaultBenchmark: boolean;
+}
+
+export interface BenchmarkComparison {
+  rows: BenchmarkComparisonRow[];
+  belowCount: number;
+}
+
 export interface SkillPayload {
   name: string;
   requiredLevel: RequiredLevel;

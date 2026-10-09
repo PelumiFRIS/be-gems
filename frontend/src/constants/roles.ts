@@ -20,6 +20,11 @@ export function canManageEvaluations(user: RoleHolder | null | undefined): boole
   return actsAs(user, "COMPANY_SECRETARY") || actsAs(user, "EVALUATOR");
 }
 
+/** Organisation staff who can see board-level analysis (skills matrix, benchmarks); directors and super admins can't. */
+export function isStaff(user: RoleHolder | null | undefined): boolean {
+  return user?.role === "ORG_ADMIN" || user?.role === "COMPANY_SECRETARY" || user?.role === "EVALUATOR";
+}
+
 export function roleLabel(user: RoleHolder): string {
   return user.role === "ORG_ADMIN" && user.companySecretaryAccess
     ? `${ROLE_LABELS.ORG_ADMIN} & ${ROLE_LABELS.COMPANY_SECRETARY}`

@@ -5,6 +5,7 @@ import com.fris.begems.action.CorrectiveActionRepository;
 import com.fris.begems.audit.AuditAction;
 import com.fris.begems.audit.AuditEntityType;
 import com.fris.begems.audit.AuditLogService;
+import com.fris.begems.benchmark.BenchmarkService;
 import com.fris.begems.board.Board;
 import com.fris.begems.board.BoardRepository;
 import com.fris.begems.committee.Committee;
@@ -83,6 +84,7 @@ public class ReportService {
     private final DirectorReportWriter directorReportWriter;
     private final AuditLogService auditLogService;
     private final SkillService skillService;
+    private final BenchmarkService benchmarkService;
 
     public ReportService(EvaluationRepository evaluationRepository,
             EvaluationRespondentRepository respondentRepository, ResponseRepository responseRepository,
@@ -94,8 +96,10 @@ public class ReportService {
             CommitteeMemberRepository committeeMemberRepository, FindingRepository findingRepository,
             RecommendationRepository recommendationRepository,
             CorrectiveActionRepository correctiveActionRepository, BoardReportWriter boardReportWriter,
-            DirectorReportWriter directorReportWriter, AuditLogService auditLogService, SkillService skillService) {
+            DirectorReportWriter directorReportWriter, AuditLogService auditLogService, SkillService skillService,
+            BenchmarkService benchmarkService) {
         this.skillService = skillService;
+        this.benchmarkService = benchmarkService;
         this.evaluationRepository = evaluationRepository;
         this.respondentRepository = respondentRepository;
         this.responseRepository = responseRepository;
@@ -213,6 +217,7 @@ public class ReportService {
                 actions,
                 evaluation.getEvaluationType() == EvaluationType.BOARD ? peerDirectorScores(evaluation) : List.of(),
                 skillService.matrixFor(board.getId()),
+                benchmarkService.benchmarksFor(organization.getId()),
                 LocalDate.now());
     }
 

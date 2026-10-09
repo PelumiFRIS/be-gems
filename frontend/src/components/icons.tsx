@@ -199,6 +199,18 @@ export function SkillsIcon(props: IconProps) {
   );
 }
 
+export function BenchmarkIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 20h16" />
+      <rect x="5.5" y="11" width="3" height="7" rx="0.8" />
+      <rect x="10.5" y="7" width="3" height="11" rx="0.8" />
+      <rect x="15.5" y="13" width="3" height="5" rx="0.8" />
+      <path d="M3.5 9.5h17" strokeDasharray="2 2" />
+    </svg>
+  );
+}
+
 export function BellIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

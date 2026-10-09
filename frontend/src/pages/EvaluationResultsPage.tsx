@@ -1,16 +1,31 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
+import { getBenchmarkComparison } from "../api/benchmarks";
 import { extractErrorMessage } from "../api/client";
 import { getEvaluation } from "../api/evaluations";
 import { createFinding, listFindings } from "../api/findings";
 import { openEvaluationReport } from "../api/reports";
 import { calculateScores, getScores } from "../api/scores";
-import type { EvaluationDetail, FindingSeverity, FindingSummary, ScoreRowSummary } from "../api/types";
+import type {
+  BenchmarkComparison,
+  BenchmarkComparisonRow,
+  EvaluationDetail,
+  FindingSeverity,
+  FindingSummary,
+  ScoreRowSummary,
+} from "../api/types";
 import { Badge } from "../components/Badge";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
-import { canManageEvaluations } from "../constants/roles";
+import { canManageBoard } from "../constants/directors";
+import { canManageEvaluations, isStaff } from "../constants/roles";
 import { useAuth } from "../context/AuthContext";
+
+/** BGEI rows (no dimension) are percentages; dimension rows are scores out of 5. */
+function formatBenchmarkValue(row: BenchmarkComparisonRow, value: number, signed = false): string {
+  const text = `${value.toFixed(2)}${row.dimensionId === null ? "%" : ""}`;
+  return signed && value > 0 ? `+${text}` : text;
+}
 
 export function EvaluationResultsPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +37,7 @@ export function EvaluationResultsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
+  const [benchmark, setBenchmark] = useState<BenchmarkComparison | null>(null);
 
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState<FindingSeverity>("MEDIUM");
@@ -42,6 +58,15 @@ export function EvaluationResultsPage() {
       .catch((err) => setError(extractErrorMessage(err)))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const isBoardEvaluation = detail?.evaluation.evaluationType === "BOARD";
+  const canViewBenchmark = isBoardEvaluation && scores.length > 0 && isStaff(user);
+  useEffect(() => {
+    if (!id || !canViewBenchmark) return;
+    getBenchmarkComparison(id)
+      .then(setBenchmark)
+      .catch((err) => setError(extractErrorMessage(err)));
+  }, [id, canViewBenchmark]);
 
   async function handleCalculate() {
     if (!id) return;
@@ -227,6 +252,57 @@ export function EvaluationResultsPage() {
                     </strong>
                   </p>
                 )}
+              </section>
+            )}
+
+            {canViewBenchmark && benchmark && benchmark.rows.length > 0 && (
+              <section className="dashboard-section">
+                <div className="section-heading-row">
+                  <div>
+                    <h2>Regulatory benchmark</h2>
+                    <p className="table-hint section-subtitle">
+                      {benchmark.belowCount === 0
+                        ? "Every area met or exceeded its benchmark."
+                        : `${benchmark.belowCount} ${benchmark.belowCount === 1 ? "area falls" : "areas fall"} below the benchmark.`}
+                    </p>
+                  </div>
+                  {canManageBoard(user?.role) && (
+                    <Link className="text-link" to="/benchmarks">
+                      Change benchmark targets
+                    </Link>
+                  )}
+                </div>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Measure</th>
+                      <th className="numeric">Actual</th>
+                      <th className="numeric">Benchmark</th>
+                      <th className="numeric">Variance</th>
+                      <th>Status</th>
+                      <th>Basis</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {benchmark.rows.map((row) => (
+                      <tr key={row.dimensionId ?? "bgei"} className={row.belowBenchmark ? "below-benchmark" : undefined}>
+                        <td>{row.measure}</td>
+                        <td className="numeric">{formatBenchmarkValue(row, row.actual)}</td>
+                        <td className="numeric">{formatBenchmarkValue(row, row.benchmark)}</td>
+                        <td className={`numeric ${row.belowBenchmark ? "variance-negative" : "variance-positive"}`}>
+                          {formatBenchmarkValue(row, row.variance, true)}
+                        </td>
+                        <td>
+                          <Badge
+                            value={row.belowBenchmark ? "BELOW_BENCHMARK" : "MEETS_BENCHMARK"}
+                            label={row.belowBenchmark ? "Below benchmark" : "Meets benchmark"}
+                          />
+                        </td>
+                        <td className="table-hint">{row.source}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </section>
             )}
 

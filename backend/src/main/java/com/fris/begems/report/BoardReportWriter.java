@@ -9,6 +9,10 @@ import static com.fris.begems.report.ReportFormat.score;
 
 import com.fris.begems.action.ActionStatus;
 import com.fris.begems.action.CorrectiveAction;
+import com.fris.begems.benchmark.BenchmarkAnalysis;
+import com.fris.begems.benchmark.Benchmarks;
+import com.fris.begems.benchmark.dto.BenchmarkComparison;
+import com.fris.begems.benchmark.dto.BenchmarkComparisonRow;
 import com.fris.begems.committee.Committee;
 import com.fris.begems.committee.CommitteeMember;
 import com.fris.begems.committee.CommitteeMemberRole;
@@ -56,10 +60,6 @@ import org.springframework.stereotype.Component;
 @Component
 class BoardReportWriter {
 
-    /** Level 3 (Defined): practices formally documented and consistently applied. */
-    private static final int BENCHMARK_MATURITY_LEVEL = 3;
-    /** Lower bound of the "Effective" BGEI band. */
-    private static final BigDecimal BENCHMARK_BGEI_PCT = new BigDecimal("70.00");
     private static final BigDecimal STRENGTH_THRESHOLD = new BigDecimal("3.70");
     private static final int HIGHLIGHT_LIMIT = 5;
 
@@ -97,7 +97,7 @@ class BoardReportWriter {
         chairmanEvaluation(html, ctx, results);
         directorEvaluation(html, ctx, results);
         governanceMaturity(html, ctx, results);
-        regulatoryBenchmark(html, ctx, results);
+        regulatoryBenchmark(html, ctx);
         keyStrengths(html, results);
         keyFindings(html, ctx);
         areasForImprovement(html, results);
@@ -461,41 +461,42 @@ class BoardReportWriter {
                 rows);
     }
 
-    private void regulatoryBenchmark(ReportHtmlBuilder html, ReportContext ctx, Results results) {
+    private void regulatoryBenchmark(ReportHtmlBuilder html, ReportContext ctx) {
         html.section("Regulatory Benchmark");
-        Optional<MaturityLevel> benchmarkLevel = ctx.maturityLevel(BENCHMARK_MATURITY_LEVEL);
-        if (benchmarkLevel.isEmpty()) {
-            html.note("No benchmark maturity level is configured.");
+        BenchmarkComparison comparison = BenchmarkAnalysis.compare(ctx.dimensions(), ctx.scores(), ctx.benchmarks());
+        if (comparison.rows().isEmpty()) {
+            html.note("No scores are available to compare against the benchmarks.");
             return;
         }
-        BigDecimal benchmark = benchmarkLevel.get().getMinScore();
-        html.paragraph("For this report, the benchmark for each dimension is maturity Level "
-                + benchmarkLevel.get().getLevel() + " (" + benchmarkLevel.get().getLabel() + ", a score of at least "
-                + score(benchmark) + "), the point at which governance practices are formally documented and "
-                + "consistently applied in line with the " + frameworkName(ctx) + ". The benchmark for the BGEI is "
-                + percent(BENCHMARK_BGEI_PCT) + " (Effective).");
+        Benchmarks.Target defaultTarget = ctx.benchmarks().defaultDimension();
+        boolean allDefault = comparison.rows().stream().allMatch(BenchmarkComparisonRow::defaultBenchmark);
+        html.paragraph(allDefault
+                ? "Each dimension is compared with the BE-GEMS default benchmark of a score of at least "
+                        + score(defaultTarget.value()) + " (" + defaultTarget.source().replace("BE-GEMS default: ", "")
+                        + "), the point at which governance practices are formally documented and consistently "
+                        + "applied in line with the " + frameworkName(ctx) + ". The BGEI is compared with "
+                        + percent(ctx.benchmarks().bgei().value()) + ", the lower bound of the Effective band."
+                : "Each area is compared with the benchmark " + ctx.organization().getName() + " has set for it, "
+                        + "and the basis for each benchmark is shown in the table. Where no benchmark has been set, "
+                        + "the BE-GEMS default applies.");
 
-        long below = 0;
-        List<List<String>> rows = new ArrayList<>();
-        for (EvaluationScore s : results.dimensionScores().values()) {
-            BigDecimal variance = s.getRawScore().subtract(benchmark);
-            boolean meets = variance.signum() >= 0;
-            if (!meets) {
-                below++;
-            }
-            rows.add(List.of(ctx.dimensionName(s.getDimensionId()), score(s.getRawScore()), score(benchmark),
-                    (variance.signum() > 0 ? "+" : "") + score(variance), meets ? "Meets benchmark" : "Below benchmark"));
-        }
-        if (results.bgeiPct() != null) {
-            BigDecimal variance = results.bgeiPct().subtract(BENCHMARK_BGEI_PCT);
-            rows.add(List.of("BGEI", percent(results.bgeiPct()), percent(BENCHMARK_BGEI_PCT),
-                    (variance.signum() > 0 ? "+" : "") + score(variance),
-                    variance.signum() >= 0 ? "Meets benchmark" : "Below benchmark"));
-        }
-        html.paragraph(below == 0 ? "Every dimension met the benchmark."
-                : plural(below, "dimension falls", "dimensions fall") + " below the benchmark.");
+        List<BenchmarkComparisonRow> below = comparison.rows().stream()
+                .filter(BenchmarkComparisonRow::belowBenchmark)
+                .toList();
+        html.paragraph(below.isEmpty() ? "Every area met or exceeded its benchmark."
+                : plural(below.size(), "area falls", "areas fall") + " below the benchmark (negative variance): "
+                        + joinWithAnd(below.stream()
+                                .map(r -> r.measure() + " (" + benchmarkValue(r, r.variance(), true) + ")")
+                                .toList())
+                        + ".");
         html.table(List.of(Column.text("Measure"), Column.number("Actual"), Column.number("Benchmark"),
-                Column.number("Variance"), Column.text("Status")), rows);
+                Column.number("Variance"), Column.text("Status"), Column.text("Basis")),
+                comparison.rows().stream()
+                        .map(r -> List.of(r.measure(), benchmarkValue(r, r.actual(), false),
+                                benchmarkValue(r, r.benchmark(), false), benchmarkValue(r, r.variance(), true),
+                                r.belowBenchmark() ? "Below benchmark" : "Meets benchmark",
+                                nullToEmpty(r.source())))
+                        .toList());
 
         List<Finding> referenced = ctx.findingsInReportOrder().stream()
                 .filter(f -> f.getRegulatoryReference() != null && !f.getRegulatoryReference().isBlank())
@@ -508,6 +509,12 @@ class BoardReportWriter {
                     referenced.stream().map(f -> List.of(refs.get(f.getId()), f.getRegulatoryReference(),
                             f.getDescription(), ReportFormat.humanize(f.getSeverity()))).toList());
         }
+    }
+
+    /** BGEI rows are percentages; dimension rows are scores out of 5. */
+    private static String benchmarkValue(BenchmarkComparisonRow row, BigDecimal value, boolean signed) {
+        String text = row.dimensionId() == null ? percent(value) : score(value);
+        return signed && value.signum() > 0 ? "+" + text : text;
     }
 
     private void keyStrengths(ReportHtmlBuilder html, Results results) {

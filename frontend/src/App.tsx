@@ -3,6 +3,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { AccountPage } from "./pages/AccountPage";
 import { ActionRegisterPage } from "./pages/ActionRegisterPage";
+import { BenchmarksPage } from "./pages/BenchmarksPage";
 import { BoardSetupPage } from "./pages/BoardSetupPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DirectorFormPage } from "./pages/DirectorFormPage";
@@ -101,6 +102,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ActionRegisterPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/benchmarks"
+          element={
+            <ProtectedRoute>
+              <BenchmarksPage />
             </ProtectedRoute>
           }
         />

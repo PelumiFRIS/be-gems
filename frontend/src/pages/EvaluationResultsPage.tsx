@@ -12,9 +12,11 @@ import type {
   EvaluationDetail,
   FindingSeverity,
   FindingSummary,
+  ReportApprovalStatus,
   ScoreRowSummary,
 } from "../api/types";
 import { Badge } from "../components/Badge";
+import { ReportApprovalPanel } from "../components/ReportApprovalPanel";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
 import { canManageBoard } from "../constants/directors";
@@ -38,6 +40,7 @@ export function EvaluationResultsPage() {
   const [error, setError] = useState<string | null>(null);
   const [calculating, setCalculating] = useState(false);
   const [benchmark, setBenchmark] = useState<BenchmarkComparison | null>(null);
+  const [approval, setApproval] = useState<ReportApprovalStatus | null>(null);
 
   const [description, setDescription] = useState("");
   const [severity, setSeverity] = useState<FindingSeverity>("MEDIUM");
@@ -137,6 +140,14 @@ export function EvaluationResultsPage() {
   const canOpenReport =
     scores.length > 0 &&
     (canManageEvaluations(user) || (user?.role === "ORG_ADMIN" && !isIndividual));
+  const reportStage = approval?.stage ?? detail?.evaluation.reportStage ?? null;
+  const reportLabel = isIndividual
+    ? "Open confidential director report"
+    : reportStage === "FINAL"
+      ? "Open final board report"
+      : reportStage
+        ? "Open draft board report"
+        : "Open board evaluation report";
 
   return (
     <div className="app-shell">
@@ -147,11 +158,7 @@ export function EvaluationResultsPage() {
           <h1>Evaluation Results</h1>
           {canOpenReport && (
             <button type="button" className="secondary small" onClick={handleOpenReport} disabled={openingReport}>
-              {openingReport
-                ? "Preparing report..."
-                : isIndividual
-                  ? "Open confidential director report"
-                  : "Open board evaluation report"}
+              {openingReport ? "Preparing report..." : reportLabel}
             </button>
           )}
         </div>
@@ -179,6 +186,10 @@ export function EvaluationResultsPage() {
                 <p>Scores are available once the evaluation is closed.</p>
               )}
             </section>
+
+            {id && isBoardEvaluation && scores.length > 0 && isStaff(user) && (
+              <ReportApprovalPanel evaluationId={id} onStatusChange={setApproval} />
+            )}
 
             {dimensionScores.length > 0 && (
               <section className="dashboard-section">

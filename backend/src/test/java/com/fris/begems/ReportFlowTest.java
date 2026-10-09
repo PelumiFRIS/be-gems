@@ -90,7 +90,7 @@ class ReportFlowTest extends IntegrationTestSupport {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getHeaders().getContentType().toString()).contains("text/html");
         assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
-                .contains("Board%20Evaluation%20Report%202026.html");
+                .contains("Board%20Evaluation%20Report%202026%20%28Draft%29.html");
 
         String html = response.getBody();
         for (String section : List.of("Confidentiality Statement", "Executive Summary", "Background", "Objectives",

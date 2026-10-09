@@ -2,6 +2,11 @@ package com.fris.begems.report;
 
 import com.fris.begems.action.CorrectiveAction;
 import com.fris.begems.action.CorrectiveActionRepository;
+import com.fris.begems.approval.BoardReportAccess;
+import com.fris.begems.approval.FinalReport;
+import com.fris.begems.approval.FinalReportRepository;
+import com.fris.begems.approval.ReportApprovalEventRepository;
+import com.fris.begems.approval.ReportStage;
 import com.fris.begems.audit.AuditAction;
 import com.fris.begems.audit.AuditEntityType;
 import com.fris.begems.audit.AuditLogService;
@@ -44,6 +49,7 @@ import com.fris.begems.security.AppUserPrincipal;
 import com.fris.begems.skill.SkillService;
 import com.fris.begems.user.Role;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
@@ -85,6 +91,9 @@ public class ReportService {
     private final AuditLogService auditLogService;
     private final SkillService skillService;
     private final BenchmarkService benchmarkService;
+    private final ReportApprovalEventRepository approvalEventRepository;
+    private final FinalReportRepository finalReportRepository;
+    private final BoardReportAccess boardReportAccess;
 
     public ReportService(EvaluationRepository evaluationRepository,
             EvaluationRespondentRepository respondentRepository, ResponseRepository responseRepository,
@@ -97,9 +106,13 @@ public class ReportService {
             RecommendationRepository recommendationRepository,
             CorrectiveActionRepository correctiveActionRepository, BoardReportWriter boardReportWriter,
             DirectorReportWriter directorReportWriter, AuditLogService auditLogService, SkillService skillService,
-            BenchmarkService benchmarkService) {
+            BenchmarkService benchmarkService, ReportApprovalEventRepository approvalEventRepository,
+            FinalReportRepository finalReportRepository, BoardReportAccess boardReportAccess) {
         this.skillService = skillService;
         this.benchmarkService = benchmarkService;
+        this.approvalEventRepository = approvalEventRepository;
+        this.finalReportRepository = finalReportRepository;
+        this.boardReportAccess = boardReportAccess;
         this.evaluationRepository = evaluationRepository;
         this.respondentRepository = respondentRepository;
         this.responseRepository = responseRepository;
@@ -135,8 +148,19 @@ public class ReportService {
             throw ApiException.forbidden(
                     "Individual director reports are restricted to the Company Secretary and Evaluators");
         }
+        if (!individual && !boardReportAccess.canView(principal, evaluation)) {
+            throw ApiException.forbidden("The Board Evaluation Report is shared with directors once it is approved");
+        }
         if (evaluation.getStatus() != EvaluationStatus.SCORED) {
             throw ApiException.conflict("The report is available once scores have been calculated");
+        }
+
+        if (evaluation.getReportStage() == ReportStage.FINAL) {
+            FinalReport issued = finalReportRepository.findById(evaluationId)
+                    .orElseGet(() -> issueFinal(evaluation));
+            auditLogService.record(principal, AuditAction.REPORT_GENERATED, AuditEntityType.EVALUATION,
+                    evaluationId, "Opened the final board evaluation report");
+            return new GeneratedReport(issued.getFileName(), issued.getHtml().getBytes(StandardCharsets.UTF_8));
         }
 
         ReportContext ctx = loadContext(evaluation);
@@ -152,13 +176,33 @@ public class ReportService {
             summary = "Generated confidential individual director report for " + directorName;
         } else {
             html = boardReportWriter.write(ctx);
-            fileName = ctx.organization().getName() + " - Board Evaluation Report " + evaluation.getYear() + ".html";
+            fileName = boardReportFileName(ctx, evaluation.getReportStage() == null ? "" : " (Draft)");
             summary = "Generated board evaluation report";
         }
 
         auditLogService.record(principal, AuditAction.REPORT_GENERATED, AuditEntityType.EVALUATION, evaluationId,
                 summary);
-        return new GeneratedReport(fileName.replaceAll("[\\\\/:*?\"<>|]", ""), html);
+        return new GeneratedReport(safeFileName(fileName), html);
+    }
+
+    /**
+     * Renders the approved report once and keeps it, so the final version directors read doesn't change if
+     * benchmarks, skills or board membership are edited later. Called inside the approving transaction.
+     */
+    public FinalReport issueFinal(Evaluation evaluation) {
+        ReportContext ctx = loadContext(evaluation);
+        String html = new String(boardReportWriter.write(ctx), StandardCharsets.UTF_8);
+        return finalReportRepository.save(FinalReport.create(evaluation.getId(), evaluation.getOrganizationId(),
+                safeFileName(boardReportFileName(ctx, "")), html));
+    }
+
+    private static String boardReportFileName(ReportContext ctx, String suffix) {
+        return ctx.organization().getName() + " - Board Evaluation Report " + ctx.evaluation().getYear() + suffix
+                + ".html";
+    }
+
+    private static String safeFileName(String fileName) {
+        return fileName.replaceAll("[\\\\/:*?\"<>|]", "");
     }
 
     private ReportContext loadContext(Evaluation evaluation) {
@@ -218,6 +262,7 @@ public class ReportService {
                 evaluation.getEvaluationType() == EvaluationType.BOARD ? peerDirectorScores(evaluation) : List.of(),
                 skillService.matrixFor(board.getId()),
                 benchmarkService.benchmarksFor(organization.getId()),
+                approvalEventRepository.findByEvaluationIdOrderByCreatedAtAsc(evaluation.getId()),
                 LocalDate.now());
     }
 

@@ -27,7 +27,7 @@ public class ReportController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'COMPANY_SECRETARY', 'EVALUATOR')")
+    @PreAuthorize("hasAnyRole('ORG_ADMIN', 'COMPANY_SECRETARY', 'EVALUATOR', 'DIRECTOR')")
     public ResponseEntity<byte[]> report(@AuthenticationPrincipal AppUserPrincipal principal,
             @PathVariable UUID evaluationId) {
         GeneratedReport report = reportService.generate(principal, evaluationId);

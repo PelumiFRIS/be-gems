@@ -175,6 +175,49 @@ export interface EvaluationSummary {
   status: EvaluationStatus;
   startDate: string | null;
   closeDate: string | null;
+  /** Board evaluations only, from scoring onwards. */
+  reportStage: ReportStage | null;
+}
+
+export type ReportStage =
+  | "EVALUATOR_REVIEW"
+  | "DRAFT_REPORT"
+  | "QUALITY_REVIEW"
+  | "CS_REVIEW"
+  | "BOARD_APPROVAL"
+  | "FINAL";
+
+export interface ApprovalEvent {
+  fromStage: ReportStage;
+  fromStageLabel: string;
+  toStage: ReportStage;
+  toStageLabel: string;
+  decision: "APPROVED" | "RETURNED";
+  comment: string | null;
+  actorName: string;
+  createdAt: string;
+}
+
+export interface ReportApprovalStatus {
+  evaluationId: string;
+  year: number;
+  stage: ReportStage;
+  stageLabel: string;
+  stages: { stage: ReportStage; label: string }[];
+  history: ApprovalEvent[];
+  canApprove: boolean;
+  canReturn: boolean;
+  commentRequired: boolean;
+  approveLabel: string | null;
+}
+
+export interface MyBoardReport {
+  evaluationId: string;
+  year: number;
+  boardName: string;
+  stage: ReportStage;
+  stageLabel: string;
+  awaitingMyApproval: boolean;
 }
 
 export interface CreateEvaluationPayload {

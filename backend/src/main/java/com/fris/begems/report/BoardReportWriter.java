@@ -9,6 +9,8 @@ import static com.fris.begems.report.ReportFormat.score;
 
 import com.fris.begems.action.ActionStatus;
 import com.fris.begems.action.CorrectiveAction;
+import com.fris.begems.approval.ApprovalDecision;
+import com.fris.begems.approval.ReportStage;
 import com.fris.begems.benchmark.BenchmarkAnalysis;
 import com.fris.begems.benchmark.Benchmarks;
 import com.fris.begems.benchmark.dto.BenchmarkComparison;
@@ -36,6 +38,7 @@ import com.fris.begems.skill.SkillCoverage;
 import com.fris.begems.skill.dto.SkillRow;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -60,6 +63,7 @@ import org.springframework.stereotype.Component;
 @Component
 class BoardReportWriter {
 
+    private static final ZoneId REPORT_ZONE = ZoneId.of("Africa/Lagos");
     private static final BigDecimal STRENGTH_THRESHOLD = new BigDecimal("3.70");
     private static final int HIGHLIGHT_LIMIT = 5;
 
@@ -68,12 +72,16 @@ class BoardReportWriter {
         String org = ctx.organization().getName();
         ReportHtmlBuilder html = new ReportHtmlBuilder(org + " — Board Evaluation Report " + ctx.evaluation().getYear());
 
-        html.cover("Strictly private and confidential", "Board Evaluation Report", org, List.of(
+        ReportStage stage = ctx.evaluation().getReportStage();
+        boolean draft = stage != null && stage != ReportStage.FINAL;
+        html.cover(draft ? "Draft for review · not yet approved" : "Strictly private and confidential",
+                "Board Evaluation Report", org, List.of(
                 new String[] {"Board", ctx.board().getName()},
                 new String[] {"Evaluation year", String.valueOf(ctx.evaluation().getYear())},
                 new String[] {"Evaluation period",
                         ReportFormat.period(ctx.evaluation().getStartDate(), ctx.evaluation().getCloseDate())},
                 new String[] {"Governance framework", frameworkName(ctx)},
+                new String[] {"Report status", reportStatus(ctx)},
                 new String[] {"Report generated", date(ctx.generatedOn())}));
 
         html.heading("Confidentiality Statement")
@@ -83,6 +91,10 @@ class BoardReportWriter {
                         + "third party without the prior written consent of the Board.")
                 .paragraph("Individual responses were collected in confidence and are presented in aggregate only. "
                         + "No rating or comment in this report is attributed to an individual director.");
+        if (draft) {
+            html.banner("Draft for review. This report is at the " + stage.label() + " stage of the approval "
+                    + "process and has not yet been approved by the Board. It must not be circulated as final.");
+        }
         html.contents();
 
         executiveSummary(html, ctx, results);
@@ -689,6 +701,34 @@ class BoardReportWriter {
             html.paragraph(question.getText());
             html.quotes(texts);
         });
+
+        if (!ctx.approvalHistory().isEmpty()) {
+            html.subheading("Appendix D — Approval record");
+            html.table(List.of(Column.text("Stage"), Column.text("Decision"), Column.text("By"), Column.text("Date"),
+                    Column.text("Comment")),
+                    ctx.approvalHistory().stream()
+                            .map(e -> List.of(e.getFromStage().label(),
+                                    e.getDecision() == ApprovalDecision.APPROVED ? "Approved"
+                                            : "Returned to " + e.getToStage().label(),
+                                    e.getActorName(), date(LocalDate.ofInstant(e.getCreatedAt(), REPORT_ZONE)),
+                                    nullToEmpty(e.getComment())))
+                            .toList());
+        }
+    }
+
+    private static String reportStatus(ReportContext ctx) {
+        ReportStage stage = ctx.evaluation().getReportStage();
+        if (stage == null) {
+            return "Generated from scored results";
+        }
+        if (stage != ReportStage.FINAL) {
+            return "Draft — " + stage.label();
+        }
+        return ctx.approvalHistory().stream()
+                .filter(e -> e.getToStage() == ReportStage.FINAL)
+                .reduce((first, second) -> second)
+                .map(e -> "Final — approved " + date(LocalDate.ofInstant(e.getCreatedAt(), REPORT_ZONE)))
+                .orElse("Final");
     }
 
     private void dimensionNarrative(ReportHtmlBuilder html, ReportContext ctx, Results results, String code,

@@ -211,6 +211,17 @@ export function BenchmarkIcon(props: IconProps) {
   );
 }
 
+export function ReportIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10.5a.5.5 0 0 1-.5-.5V4a.5.5 0 0 1 .5-.5z" />
+      <path d="M14 3.5V8h4" />
+      <path d="M9.5 12.5l1.8 1.8 3.4-3.6" />
+      <path d="M9.5 17h5" />
+    </svg>
+  );
+}
+
 export function BellIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

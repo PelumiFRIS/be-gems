@@ -2,7 +2,14 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { EvaluationDetail, FindingSummary, ScoreRowSummary, UserSummary } from "../api/types";
+import type {
+  EvaluationDetail,
+  FindingSummary,
+  ReportApprovalStatus,
+  ScoreRowSummary,
+  UserSummary,
+} from "../api/types";
+import { approveReport, getReportApproval, returnReport } from "../api/reportApproval";
 import { useAuth } from "../context/AuthContext";
 import { getEvaluation } from "../api/evaluations";
 import { createFinding, listFindings } from "../api/findings";
@@ -37,7 +44,41 @@ vi.mock("../api/benchmarks", () => ({
   getBenchmarkComparison: vi.fn(),
 }));
 
+vi.mock("../api/reportApproval", () => ({
+  getReportApproval: vi.fn(),
+  approveReport: vi.fn(),
+  returnReport: vi.fn(),
+}));
+
 const mockedGetBenchmarkComparison = vi.mocked(getBenchmarkComparison);
+const mockedGetReportApproval = vi.mocked(getReportApproval);
+const mockedApproveReport = vi.mocked(approveReport);
+const mockedReturnReport = vi.mocked(returnReport);
+
+const STAGES: ReportApprovalStatus["stages"] = [
+  { stage: "EVALUATOR_REVIEW", label: "Evaluator Review" },
+  { stage: "DRAFT_REPORT", label: "Draft Report" },
+  { stage: "QUALITY_REVIEW", label: "Quality Review" },
+  { stage: "CS_REVIEW", label: "Company Secretary Review" },
+  { stage: "BOARD_APPROVAL", label: "Chairman/Board Approval" },
+  { stage: "FINAL", label: "Final Report" },
+];
+
+function approvalStatus(overrides: Partial<ReportApprovalStatus> = {}): ReportApprovalStatus {
+  return {
+    evaluationId: "eval-1",
+    year: 2026,
+    stage: "EVALUATOR_REVIEW",
+    stageLabel: "Evaluator Review",
+    stages: STAGES,
+    history: [],
+    canApprove: true,
+    canReturn: false,
+    commentRequired: false,
+    approveLabel: "Results reviewed — prepare draft report",
+    ...overrides,
+  };
+}
 
 const mockedUseAuth = vi.mocked(useAuth);
 const mockedGetEvaluation = vi.mocked(getEvaluation);
@@ -144,6 +185,7 @@ function boardEvaluationDetail(status: EvaluationDetail["evaluation"]["status"])
       status,
       startDate: "2026-01-01",
       closeDate: status === "CLOSED" || status === "SCORED" ? "2026-06-01" : null,
+      reportStage: status === "SCORED" ? "EVALUATOR_REVIEW" : null,
     },
     respondents: [],
   };
@@ -161,6 +203,7 @@ function peerEvaluationDetail(): EvaluationDetail {
       status: "SCORED",
       startDate: "2026-01-01",
       closeDate: "2026-06-01",
+      reportStage: null,
     },
     respondents: [],
   };
@@ -182,6 +225,107 @@ describe("EvaluationResultsPage", () => {
     mockedUseAuth.mockReturnValue({ user, loading: false } as unknown as ReturnType<typeof useAuth>);
     mockedListFindings.mockResolvedValue([]);
     mockedGetBenchmarkComparison.mockResolvedValue({ rows: [], belowCount: 0 });
+    mockedGetReportApproval.mockResolvedValue(approvalStatus());
+  });
+
+  it("moves the report on to the next approval stage", async () => {
+    mockedGetEvaluation.mockResolvedValue(boardEvaluationDetail("SCORED"));
+    mockedGetScores.mockResolvedValue(boardScores);
+    mockedGetReportApproval.mockResolvedValue(
+      approvalStatus({
+        stage: "QUALITY_REVIEW",
+        stageLabel: "Quality Review",
+        canReturn: true,
+        approveLabel: "Quality review passed — send to Company Secretary",
+      }),
+    );
+    mockedApproveReport.mockResolvedValue(
+      approvalStatus({
+        stage: "CS_REVIEW",
+        stageLabel: "Company Secretary Review",
+        history: [
+          {
+            fromStage: "QUALITY_REVIEW",
+            fromStageLabel: "Quality Review",
+            toStage: "CS_REVIEW",
+            toStageLabel: "Company Secretary Review",
+            decision: "APPROVED",
+            comment: null,
+            actorName: "Cara Secretary",
+            createdAt: "2026-10-09T10:00:00Z",
+          },
+        ],
+        approveLabel: "Send to the Chairman/Board for approval",
+      }),
+    );
+
+    renderPage();
+
+    expect(await screen.findByText("The report is a draft at the Quality Review stage.")).toBeInTheDocument();
+    expect(screen.getByText("Quality Review").closest("li")).toHaveClass("approval-step-current");
+    expect(screen.getByText("Draft Report").closest("li")).toHaveClass("approval-step-done");
+    await userEvent.click(screen.getByRole("button", { name: "Quality review passed — send to Company Secretary" }));
+
+    expect(mockedApproveReport).toHaveBeenCalledWith(EVAL_ID, "");
+    expect(await screen.findByText("The report is a draft at the Company Secretary Review stage.")).toBeInTheDocument();
+    const historyRow = screen.getByRole("cell", { name: "Cara Secretary" }).closest("tr")!;
+    expect(within(historyRow).getByText("Approved")).toBeInTheDocument();
+  });
+
+  it("requires a comment before returning the report for changes", async () => {
+    mockedGetEvaluation.mockResolvedValue(boardEvaluationDetail("SCORED"));
+    mockedGetScores.mockResolvedValue(boardScores);
+    mockedGetReportApproval.mockResolvedValue(
+      approvalStatus({ stage: "CS_REVIEW", stageLabel: "Company Secretary Review", canReturn: true }),
+    );
+    mockedReturnReport.mockResolvedValue(
+      approvalStatus({ stage: "DRAFT_REPORT", stageLabel: "Draft Report", canReturn: true }),
+    );
+
+    renderPage();
+
+    const returnButton = await screen.findByRole("button", { name: "Return to Draft Report" });
+    expect(returnButton).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/Comment/), "Add the committee commentary");
+    await userEvent.click(returnButton);
+
+    expect(mockedReturnReport).toHaveBeenCalledWith(EVAL_ID, "Add the committee commentary");
+    expect(await screen.findByText("The report is a draft at the Draft Report stage.")).toBeInTheDocument();
+  });
+
+  it("asks the Company Secretary to record when the Board approved the report", async () => {
+    mockedGetEvaluation.mockResolvedValue(boardEvaluationDetail("SCORED"));
+    mockedGetScores.mockResolvedValue(boardScores);
+    mockedGetReportApproval.mockResolvedValue(
+      approvalStatus({
+        stage: "BOARD_APPROVAL",
+        stageLabel: "Chairman/Board Approval",
+        canReturn: true,
+        commentRequired: true,
+        approveLabel: "Record the Board's approval",
+      }),
+    );
+
+    renderPage();
+
+    const approve = await screen.findByRole("button", { name: "Record the Board's approval" });
+    expect(approve).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/Board approval record/), "Board meeting of 2 October 2026");
+    expect(approve).toBeEnabled();
+  });
+
+  it("labels the report as final once it has been approved", async () => {
+    mockedGetEvaluation.mockResolvedValue(boardEvaluationDetail("SCORED"));
+    mockedGetScores.mockResolvedValue(boardScores);
+    mockedGetReportApproval.mockResolvedValue(
+      approvalStatus({ stage: "FINAL", stageLabel: "Final Report", canApprove: false, approveLabel: null }),
+    );
+
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Open final board report" })).toBeInTheDocument();
+    expect(screen.getByText("The report has been approved and issued as final.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Return to/ })).not.toBeInTheDocument();
   });
 
   it("flags areas with a negative variance against their benchmark", async () => {
@@ -295,7 +439,7 @@ describe("EvaluationResultsPage", () => {
     mockedOpenEvaluationReport.mockResolvedValue();
 
     renderPage();
-    await userEvent.click(await screen.findByRole("button", { name: "Open board evaluation report" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open draft board report" }));
 
     expect(openSpy).toHaveBeenCalledWith("", "_blank");
     expect(mockedOpenEvaluationReport).toHaveBeenCalledWith(EVAL_ID, tab);
@@ -314,7 +458,7 @@ describe("EvaluationResultsPage", () => {
     );
 
     renderPage();
-    await userEvent.click(await screen.findByRole("button", { name: "Open board evaluation report" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open draft board report" }));
 
     expect(await screen.findByText("The report is available once scores have been calculated")).toBeInTheDocument();
     openSpy.mockRestore();

@@ -80,6 +80,7 @@ const evaluations: EvaluationSummary[] = [
     status: "SCORED",
     startDate: "2026-01-01",
     closeDate: "2026-06-01",
+    reportStage: "EVALUATOR_REVIEW",
   },
   {
     id: "eval-2",
@@ -91,6 +92,7 @@ const evaluations: EvaluationSummary[] = [
     status: "DRAFT",
     startDate: null,
     closeDate: null,
+    reportStage: null,
   },
 ];
 

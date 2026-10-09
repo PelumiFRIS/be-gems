@@ -1,6 +1,7 @@
 package com.fris.begems.report;
 
 import com.fris.begems.action.CorrectiveAction;
+import com.fris.begems.approval.ReportApprovalEvent;
 import com.fris.begems.benchmark.Benchmarks;
 import com.fris.begems.board.Board;
 import com.fris.begems.committee.Committee;
@@ -55,6 +56,7 @@ record ReportContext(
         List<BigDecimal> peerDirectorScores,
         SkillsMatrix skills,
         Benchmarks benchmarks,
+        List<ReportApprovalEvent> approvalHistory,
         LocalDate generatedOn) {
 
     Map<UUID, Director> directorsById() {

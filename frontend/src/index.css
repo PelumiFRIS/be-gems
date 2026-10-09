@@ -1654,6 +1654,104 @@ button.link-button.danger-link {
   color: var(--success);
 }
 
+/* Report approval (memo §32) */
+
+.approval-steps {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  list-style: none;
+  margin: 16px 0 20px;
+  padding: 0;
+}
+
+.approval-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-faint);
+}
+
+.approval-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: calc(50% + 18px);
+  right: calc(-50% + 18px);
+  height: 2px;
+  background: var(--border);
+}
+
+.approval-step-done:not(:last-child)::after {
+  background: var(--success);
+}
+
+.approval-step-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  background: var(--surface);
+  font-weight: 700;
+}
+
+.approval-step-done {
+  color: var(--success);
+}
+
+.approval-step-done .approval-step-marker {
+  border-color: var(--success);
+  background: var(--success);
+  color: #fff;
+}
+
+.approval-step-current {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.approval-step-current .approval-step-marker {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.approval-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--background-alt);
+}
+
+.approval-actions label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.approval-panel .data-table td:nth-child(3),
+.approval-panel .data-table td:nth-child(4) {
+  white-space: nowrap;
+}
+
+.approval-history-heading {
+  margin: 20px 0 8px;
+  font-size: 15px;
+}
+
 @media (max-width: 768px) {
   .form-grid,
   .detail-grid {

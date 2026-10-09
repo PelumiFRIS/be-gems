@@ -153,6 +153,45 @@ public class NotificationService {
         }
     }
 
+    // ----- Board report approval (memo §32) -----
+
+    public void notifyReportAwaitingApproval(Evaluation evaluation, String stageLabel, String actorName,
+            List<User> recipients) {
+        String name = evaluation.getYear() + " Board Evaluation Report";
+        String summary = actorName + " moved the " + name + " to " + stageLabel + ". It is ready for your review.";
+        for (User user : recipients) {
+            notify(user, NotificationType.REPORT_APPROVAL_REQUIRED, name + ": " + stageLabel, summary,
+                    boardReportLink(user, evaluation), "Dear " + user.getFirstName() + ",\n\n" + summary);
+        }
+    }
+
+    public void notifyReportReturned(Evaluation evaluation, String stageLabel, String actorName, String comment,
+            List<User> recipients) {
+        String name = evaluation.getYear() + " Board Evaluation Report";
+        String summary = actorName + " returned the " + name + " to " + stageLabel + " for changes.";
+        for (User user : recipients) {
+            notify(user, NotificationType.REPORT_RETURNED, name + " returned for changes", summary + " " + comment,
+                    boardReportLink(user, evaluation),
+                    "Dear " + user.getFirstName() + ",\n\n" + summary + "\n\nComment: " + comment);
+        }
+    }
+
+    public void notifyReportFinalised(Evaluation evaluation, List<User> recipients) {
+        String name = evaluation.getYear() + " Board Evaluation Report";
+        String summary = "The " + name + " has been approved and issued as final.";
+        for (User user : recipients) {
+            notify(user, NotificationType.REPORT_FINALISED, name + " approved", summary,
+                    boardReportLink(user, evaluation),
+                    "Dear " + user.getFirstName() + ",\n\n" + summary + " You can read it in BE-GEMS.");
+        }
+    }
+
+    private static String boardReportLink(User user, Evaluation evaluation) {
+        return user.getRole() == Role.DIRECTOR
+                ? "/board-reports"
+                : "/evaluations/" + evaluation.getId() + "/results";
+    }
+
     // ----- Corrective actions -----
 
     public void notifyActionClosed(UUID organizationId, UUID closedByUserId, String actionDescription) {

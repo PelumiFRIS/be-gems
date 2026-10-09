@@ -1,5 +1,6 @@
 package com.fris.begems.scoring;
 
+import com.fris.begems.approval.ReportStage;
 import com.fris.begems.audit.AuditAction;
 import com.fris.begems.audit.AuditEntityType;
 import com.fris.begems.audit.AuditLogService;
@@ -190,6 +191,9 @@ public class ScoringService {
         evaluationScoreRepository.saveAll(toSave);
 
         evaluation.setStatus(EvaluationStatus.SCORED);
+        if (isBoard) {
+            evaluation.setReportStage(ReportStage.EVALUATOR_REVIEW);
+        }
         evaluationRepository.save(evaluation);
 
         auditLogService.record(principal, AuditAction.EVALUATION_SCORED, AuditEntityType.EVALUATION, evaluationId,

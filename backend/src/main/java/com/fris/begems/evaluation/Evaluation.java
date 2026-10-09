@@ -1,5 +1,6 @@
 package com.fris.begems.evaluation;
 
+import com.fris.begems.approval.ReportStage;
 import com.fris.begems.framework.EvaluationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -52,6 +53,11 @@ public class Evaluation {
 
     @Column(name = "close_date")
     private LocalDate closeDate;
+
+    /** Board evaluations only, from scoring onwards. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "report_stage")
+    private ReportStage reportStage;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

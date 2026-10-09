@@ -1,5 +1,6 @@
 package com.fris.begems.evaluation.dto;
 
+import com.fris.begems.approval.ReportStage;
 import com.fris.begems.evaluation.Evaluation;
 import com.fris.begems.evaluation.EvaluationStatus;
 import com.fris.begems.framework.EvaluationType;
@@ -15,7 +16,8 @@ public record EvaluationSummary(
         int year,
         EvaluationStatus status,
         LocalDate startDate,
-        LocalDate closeDate) {
+        LocalDate closeDate,
+        ReportStage reportStage) {
 
     public static EvaluationSummary from(Evaluation evaluation, String subjectDirectorName) {
         return new EvaluationSummary(
@@ -27,6 +29,7 @@ public record EvaluationSummary(
                 evaluation.getYear(),
                 evaluation.getStatus(),
                 evaluation.getStartDate(),
-                evaluation.getCloseDate());
+                evaluation.getCloseDate(),
+                evaluation.getReportStage());
     }
 }

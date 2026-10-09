@@ -7,6 +7,7 @@ import { createEvaluation, listEvaluations } from "../api/evaluations";
 import type { BoardSummary, DirectorSummary, EvaluationSummary, EvaluationType } from "../api/types";
 import { Sidebar } from "../components/Sidebar";
 import { TopBar } from "../components/TopBar";
+import { REPORT_STAGE_LABELS } from "../constants/reports";
 import { canManageEvaluations } from "../constants/roles";
 import { useAuth } from "../context/AuthContext";
 
@@ -90,7 +91,11 @@ export function EvaluationsListPage() {
                         : `Peer Evaluation of ${evaluation.subjectDirectorName ?? "?"}`}{" "}
                       &mdash; {evaluation.year}
                     </Link>
-                    <span className="table-hint">{evaluation.status}</span>
+                    <span className="table-hint">
+                      {evaluation.status}
+                      {evaluation.reportStage &&
+                        ` · Report: ${evaluation.reportStage === "FINAL" ? "Final" : `Draft (${REPORT_STAGE_LABELS[evaluation.reportStage]})`}`}
+                    </span>
                   </li>
                 ))}
                 {evaluations.length === 0 && <li>No evaluations yet.</li>}

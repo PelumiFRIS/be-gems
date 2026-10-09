@@ -11,6 +11,7 @@ import {
   EvaluationsIcon,
   KeyIcon,
   MyEvaluationsIcon,
+  ReportIcon,
   SkillsIcon,
 } from "./icons";
 import { initials } from "../utils/initials";
@@ -54,6 +55,13 @@ export function Sidebar() {
             <MyEvaluationsIcon /> My Evaluations
           </NavLink>
         </li>
+        {user?.role === "DIRECTOR" && (
+          <li>
+            <NavLink to="/board-reports">
+              <ReportIcon /> Board Reports
+            </NavLink>
+          </li>
+        )}
         <li>
           <NavLink to="/actions">
             <ActionsIcon /> Action Register

@@ -30,6 +30,7 @@ public final class ReportHtmlBuilder {
             h3{font-size:1.02rem;margin:1.4rem 0 0.4rem;break-after:avoid;}
             p{margin:0.5rem 0;}
             .note{color:#555;font-style:italic;}
+            .banner{border:1px solid #b91c1c;background:#fef2f2;color:#7f1d1d;padding:0.75rem 1rem;font-weight:600;}
             ol.contents{columns:2;column-gap:2rem;padding-left:1.25rem;}
             ol.contents a{color:inherit;text-decoration:none;}
             table{width:100%;border-collapse:collapse;margin:0.5rem 0 1rem;}
@@ -97,6 +98,11 @@ public final class ReportHtmlBuilder {
 
     public ReportHtmlBuilder paragraph(String text) {
         body.append("<p>").append(escape(text)).append("</p>");
+        return this;
+    }
+
+    public ReportHtmlBuilder banner(String text) {
+        body.append("<p class=\"banner\">").append(escape(text)).append("</p>");
         return this;
     }
 

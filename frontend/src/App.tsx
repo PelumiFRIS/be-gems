@@ -4,6 +4,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { AccountPage } from "./pages/AccountPage";
 import { ActionRegisterPage } from "./pages/ActionRegisterPage";
 import { BenchmarksPage } from "./pages/BenchmarksPage";
+import { BoardReportsPage } from "./pages/BoardReportsPage";
 import { BoardSetupPage } from "./pages/BoardSetupPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DirectorFormPage } from "./pages/DirectorFormPage";
@@ -118,6 +119,14 @@ function App() {
           element={
             <ProtectedRoute>
               <SkillsMatrixPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/board-reports"
+          element={
+            <ProtectedRoute>
+              <BoardReportsPage />
             </ProtectedRoute>
           }
         />
